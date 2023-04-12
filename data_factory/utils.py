@@ -63,9 +63,12 @@ def create_subset_data(k=25):
         os.makedirs(dist ,exist_ok=True)
         shutil.copy(file, dist)
 
-def split_into_batches(time, data, batch_size_minutes=60):
+def split_into_batches(time, data, batch_size=60*60*5):
+    """
+    Split data into batches of batch_size dataframes (5 df per second)
+    """
     t = time-time[0]
-    step = batch_size_minutes*60*5 # 5 df per second
+    step = int(batch_size) # 5 df per second
     hours_end = [bisect.bisect_left(t, h) for h in range(step,int(t[-1]), step)]
     batches = np.split(data, hours_end)
     times = np.split(time, hours_end)

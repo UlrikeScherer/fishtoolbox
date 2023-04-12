@@ -8,13 +8,20 @@ import matplotlib.pyplot as plt
 
 
 def repeatability_lmm(data, groups="id_cat", formula="step ~ (1 | id_cat) + block_cat"): # "step ~ (1 | id_cat) + block_cat" 
+    """
+    Repeatability of the step length
+    :param data: pandas dataframe with columns: step, id_cat, block_cat
+    :param groups: column name of the groups
+    :param formula: formula for the mixed model
+    :return: repeatability, V_g, V_r
+    """
     # block_cat only if there are at least two blocks
     lmm = smf.mixedlm(formula, data, groups=data[groups])
-    lmm_fit = lmm.fit()
-    v_within = np.var([lmm_fit.random_effects[i][0] for i in lmm_fit.random_effects.keys()])
-    repeatability = 1 - (lmm_fit.scale /( lmm_fit.scale + v_within))
-    #print(lmm_fit.summary(),"v_g: ", lmm_fit.scale,"v_r: ", v_within, "rep:", repeatability)
-    return repeatability, lmm_fit
+    lmm_fit = lmm.fit(method="nm")
+    V_g = np.var([lmm_fit.random_effects[i][0] for i in lmm_fit.random_effects.keys()])
+    V_r = np.var(lmm_fit.resid)
+    repeatability = V_g/(V_g+V_r)
+    return repeatability, V_g, V_r
 
 def repeatability_t(data_t):
     step_std =np.array([data_t.query("id_cat == @i & step >= 0")["step"].var() for i in range(data_t["id_cat"].max()+1)])
@@ -22,7 +29,8 @@ def repeatability_t(data_t):
     V_w = step_std[~np.isnan(step_std)].mean() 
     V_g = step_mean[~np.isnan(step_std)].var() 
     R=V_g/(V_g+V_w)
-    return R 
+    print("V_g",V_g,"V_w",V_w)
+    return R, V_w, V_g
 
 def repeatability(step_list):
     weights = np.array(list(map(len,step_list)))
@@ -63,7 +71,7 @@ def df_table(data,block, fish_keys):
 
 
 def get_melted_table(data_avg_step):
-    melted = pd.melt(data_avg_step, id_vars=["block1","block2","minutes"],value_vars=data_avg_step.columns[3:], var_name="id", value_name="step")
+    melted = pd.melt(data_avg_step, id_vars=["block1","block2","DATAFRAMES"],value_vars=data_avg_step.columns[3:], var_name="id", value_name="step")
     split_cols = melted['id'].str.split('_', expand=True)
     split_cols.columns = ['block', 'cam_id', 'pos']
     split_cols['id_cat'] = melted['id'].astype('category').cat.codes
@@ -71,6 +79,7 @@ def get_melted_table(data_avg_step):
     result = pd.concat([melted, split_cols], axis=1)
     result['block_cat'] = result['block'].astype('category').cat.codes
     result["day"]= result["block1"].astype("category").cat.codes
+    result["minutes"] = result["DATAFRAMES"] // (60*5)
     return result.dropna()
 
 def get_repeatability_dxdy(parameters, data_avg_step):

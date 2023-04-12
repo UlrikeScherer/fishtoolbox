@@ -22,7 +22,7 @@ def dataset_prep(parameters, fish_ids, batch_size_minutes=5):
             if f1 is None: 
                 continue
             data = np.concatenate((px2cm(f1["positions"]),f1["projections"][:,2][:,np.newaxis]),axis=1)
-            times, datas = split_into_batches(f1['df_time_index'], data, batch_size_minutes)
+            times, datas = split_into_batches(f1['df_time_index'], data, batch_size_minutes*60*5)
             for j,(d,t) in enumerate(zip(datas, times)):
                 f1_df = pd.DataFrame(d, columns=["x", "y","dist"], index=t)
                 f1_df.index.name = '# time'

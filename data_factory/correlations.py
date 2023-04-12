@@ -27,61 +27,60 @@ def plot_covariance(cov_matrix, label="day",title="Correlation",symmetric_bounds
     fig.colorbar(cax)
     return fig
 
-def hour_index(days, batch_minutes):
-    return np.concatenate([[(d,h) for h in range(0,N_HOURS*60, batch_minutes)] for d in days])
+def hour_index(days, batch_dfs):
+    return np.concatenate([[(d,h) for h in np.arange(0,N_HOURS*60*60*5, batch_dfs)] for d in days])
 
-def step_length_avg(parameters, fish_keys, batch_minutes=None):
-    if batch_minutes:
-        hidx1 = hour_index(get_days(parameters, prefix=BLOCK1), batch_minutes=batch_minutes)
-        hidx2 = hour_index(get_days(parameters,prefix=BLOCK2), batch_minutes=batch_minutes)
+def step_length_avg(parameters, fish_keys, batch_dfs=None):
+    if batch_dfs:
+        hidx1 = hour_index(get_days(parameters, prefix=BLOCK1), batch_dfs=batch_dfs)
+        hidx2 = hour_index(get_days(parameters,prefix=BLOCK2), batch_dfs=batch_dfs)
         main_df = pd.DataFrame({
             BLOCK1:hidx1[:,0],
             BLOCK2:hidx2[:,0],
-            "minutes":hidx1[:,1]
+            "DATAFRAMES":hidx1[:,1]
             })
     else:
         main_df = pd.DataFrame({BLOCK1:get_days(parameters,prefix=BLOCK1), BLOCK2:get_days(parameters, prefix=BLOCK2)})
     for fk in fish_keys:
         block = BLOCK1 if BLOCK1 in fk else BLOCK2
         data = load_trajectory_data(parameters, fk)
-        if batch_minutes: 
+        if batch_dfs: 
             step_means = np.concatenate([list(
                 map(
                     lambda batch: (
                         np.mean(batch[1]),
                         di["day"][0][0],
-                        map_to_batch_minutes(batch[0], batch_minutes)
+                        map_to_batch_dfs(batch[0], batch_dfs)
                                   ),
-                    zip(*split_into_batches(di["df_time_index"].flatten(),di["projections"][:,0], batch_size_minutes=batch_minutes))
+                    zip(*split_into_batches(di["df_time_index"].flatten(),di["projections"][:,0], batch_size=batch_dfs))
                 )
             ) for di in data])
 
             step_df = pd.DataFrame({
                 fk:step_means[:,0], 
                 block:step_means[:,1],
-                "minutes":step_means[:,2]
+                "DATAFRAMES":step_means[:,2]
                                }).dropna()
         else:
             step_df = pd.DataFrame({
                 fk:[data[i]["projections"][:,0].mean() for i in range(len(data))], 
                 block:[data[i]["day"][0][0] for i in range(len(data))]
                                }).dropna()
-        main_df = main_df.merge(step_df, on=[block,"minutes"], how="outer")
+        main_df = main_df.merge(step_df, on=[block,"DATAFRAMES"], how="outer")
     return main_df
 
-# maps to the next multiple of batch_minutes
-def map_to_batch_minutes(batch, batch_minutes):
+def map_to_batch_dfs(batch, batch_dfs):
     if len(batch)==0: return np.nan
-    else: return int((batch[0]//(5*60*batch_minutes))*batch_minutes - (6*60)) # experiment starts at 6am
+    else: return int((batch[0]//(batch_dfs))*batch_dfs - (6*60*60*5)) # experiment starts at 6am
 
 if __name__ == "__main__":
     parameters = set_parameters()
     FISH_KEYS = get_individuals_keys(parameters)
     
     # Example usage
-    batch_minutes=1
-    matrix = step_length_avg(parameters, FISH_KEYS, batch_minutes=batch_minutes)
-    matrix.to_csv(parameters.projectPath+"/avg_step_by_%dmin.csv"%batch_minutes)
+    batch_dfs= 60*60*5
+    matrix = step_length_avg(parameters, FISH_KEYS, batch_dfs=batch_dfs)
+    matrix.to_csv(parameters.projectPath+"/avg_step_by_%ddfs.csv"%batch_dfs)
     #matrix = pd.read_csv(parameters.projectPath+"/avg_step_by_day.csv")
     #cov_matrix = matrix[FISH_KEYS].T.corr(numeric_only=False)
     #fig= plot_covariance(cov_matrix, label="day",title="Correlation",symmetric_bounds=True,clip_percentile=99.5,cmap="RdBu_r")

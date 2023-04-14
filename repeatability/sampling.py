@@ -32,33 +32,36 @@ def sample_days_mins(table, n_sep, sametime=False, timeinterval=60):
         sample_table.append(table.query("day == @sday & (minutes <=@smin and minutes > @smin-@timeinterval)"))
     return pd.concat(sample_table)
 
-def plot_repeatability_sambling(data, n_sample_list, true_vals, title=""):
-    reps = pd.DataFrame(np.array(data[:,:,0]).T, columns=n_sample_list)
-    V_g = pd.DataFrame(np.array(data[:,:,1]).T, columns=n_sample_list)
-    V_r = pd.DataFrame(np.array(data[:,:,2]).T, columns=n_sample_list)
-    data2plot = [reps, V_g, V_r]
-    titles = ["repeatability", "V_g", "V_r"]
-    fig,axes = plt.subplots(3,1, figsize=(7,7), sharex=True)
-
-    for d, ax, t, tv in zip(data2plot, axes, titles, true_vals):
-        d.boxplot(ax=ax, grid=False, showfliers=False)
+def plot_repeatability_sambling(datadf, n_sample_list, true_vals, ylabels=["repeatability", "group level variance", "residual variance"], title=""):
+    fig,axes = plt.subplots(len(ylabels),1, figsize=(7,7), sharex=True, squeeze=False)
+    for ax, t, tv in zip(axes, ylabels, true_vals):
+        ax = ax[0]
+        datadf.boxplot(ax=ax, grid=False, showfliers=False, column=t, by="n_samples")
         ax.plot([1,len(n_sample_list)], [tv,tv],"--", label="true %s %.2f"%(t,tv), color="k")
         ax.set_xlabel("#samples")
         ax.set_ylabel(t)
+        ax.set_title("")
         ax.legend()
-        ax.set_title(t)
-    for i in range(len(n_sample_list)):
-        y = reps.iloc[:,i]
-        x = np.random.normal(i+1, 0.04, size=len(y))
-        axes[0].plot(x, y, 'r.', alpha=0.2)
+        for i in range(len(n_sample_list)):
+            s = n_sample_list[i]
+            y = datadf.query("n_samples == @s")[t]
+            x = np.random.normal(i+1, 0.04, size=len(y))
+            ax.plot(x, y, 'r.', alpha=0.2)
+    axes[0][0].set_title(title)
+    
     #axes[0].set_xticklabels(n_sample_list)
     
     plt.close()
     return fig
 
 def repeatability_sampling(table, n_iter, n_sample_list, sametime=False, timeinterval=60):
-    return np.array([[repeatability_lmm(sample_days_mins(table, n_sep, sametime=sametime, timeinterval=timeinterval)) for i in range(n_iter)] 
+    reps = np.array([[repeatability_lmm(sample_days_mins(table, n_sep, sametime=sametime, timeinterval=timeinterval)) for i in range(n_iter)] 
                 for n_sep in n_sample_list])
+    reps_vstack = np.vstack(reps) 
+    df = pd.DataFrame(reps_vstack, columns=["repeatability", "group level variance", "residual variance"])
+    df["n_samples"] = np.repeat(n_sample_list, n_iter)
+    df["iter"] = np.tile(range(n_iter), len(n_sample_list))
+    return df
 
 # queries the table for by time interval and returns the repeatability for each time interval
 def repeatability_over_time(table, interval=60, func=repeatability_lmm):
@@ -69,8 +72,8 @@ def repeatability_over_time(table, interval=60, func=repeatability_lmm):
 if __name__ == "__main__":
     import os
     parameters = set_parameters()
-    ndfs=60*60*5
-    nminutes =[60]# [60, 30, 10, 5]
+    ndfs=60*5*10
+    nminutes = [10] #[60, 30, 10, 5]
     n_sample_list = [2,4,8,12,16,20,24,28]
     sametime = [False, True]
     n_iter= 30
@@ -79,9 +82,14 @@ if __name__ == "__main__":
     for nmin in nminutes:
         matrix = pd.read_csv(parameters.projectPath+"/avg_step_by_%ddfs.csv"%ndfs,index_col=0)
         meld_matrix = get_melted_table(matrix)
-        true_rep, V_g, V_r = repeatability_lmm(meld_matrix)
+        true_values = repeatability_lmm(meld_matrix)
         for st in sametime:
             title = "same time: %s, sample duration %d min"%(st,nmin)
-            res = repeatability_sampling(meld_matrix, n_iter,n_sample_list, sametime=st, timeinterval=nmin)
-            fig = plot_repeatability_sambling(res,n_sample_list, true_rep, title=title)
-            fig.savefig(rep_sam_dir+"/repeatablity_sampling_%dmin_%dtime"%(nmin, st))
+            file_name = "repeatability_sampling_%dmin_%dtime_%dndfs.csv"%(nmin, st, ndfs)
+            if os.path.exists(f"{rep_sam_dir}/{file_name}"):
+                res = pd.read_csv(f"{rep_sam_dir}/{file_name}", index_col=0)
+            else:
+                res = repeatability_sampling(meld_matrix, n_iter,n_sample_list, sametime=st, timeinterval=nmin)
+                res.to_csv(f"{rep_sam_dir}/{file_name}")
+            fig = plot_repeatability_sambling(res,n_sample_list, true_values, title=title)
+            fig.savefig(f"{rep_sam_dir}/{file_name}.pdf")

@@ -1,3 +1,5 @@
+import glob
+import os
 from config import BLOCK1, BLOCK2
 import numpy as np
 from data_factory.utils import get_days, set_parameters, get_individuals_keys
@@ -13,13 +15,13 @@ def repeatability_lmm(data, groups="id_cat", formula="step ~ (1 | id_cat) + bloc
     :param data: pandas dataframe with columns: step, id_cat, block_cat
     :param groups: column name of the groups
     :param formula: formula for the mixed model
-    :return: repeatability, V_g, V_r
+    :return: repeatability, group level variance, residual variance
     """
     # block_cat only if there are at least two blocks
     lmm = smf.mixedlm(formula, data, groups=data[groups])
     lmm_fit = lmm.fit(method="nm")
-    V_g = np.var([lmm_fit.random_effects[i][0] for i in lmm_fit.random_effects.keys()])
-    V_r = np.var(lmm_fit.resid)
+    V_g = lmm_fit.cov_re.iloc[0, 0] # similar to np.var([lmm_fit.random_effects[i][0] for i in lmm_fit.random_effects.keys()])
+    V_r = lmm_fit.scale # similar to np.var(lmm_fit.resid)
     repeatability = V_g/(V_g+V_r)
     return repeatability, V_g, V_r
 
@@ -97,6 +99,34 @@ def get_repeatability_dxdy(parameters, data_avg_step):
             ).copy().dropna()
             rep_M[i,j] = repeatability_lmm(copy_results, groups="id_cat")
     return rep_M
+
+def repeatability_dependence_on_averaging(parameters):
+    files = glob.glob(parameters.projectPath+"/avg_step_by_*dfs.csv")
+    if len(files) == 0:
+        raise Exception("No files found")
+    else:
+        print("Found %s files" % len(files))
+    reps = {}
+    for file in files:
+        ndfs = (int(os.path.basename(file).split("_")[-1].split("dfs")[0]))
+        matrix = pd.read_csv(file,index_col=0)
+        meld_matrix = get_melted_table(matrix)
+        reps[ndfs]=repeatability_lmm(meld_matrix)
+    return reps
+
+def plot_repeatability_dependence_on_averaging(parameters, reps):
+    fig, ax = plt.subplots()
+    reps = dict(sorted(reps.items()))
+    data = np.array(list(reps.values()))
+    ax.plot(reps.keys(), data[:,0], label="repeatability")
+    ax.plot(reps.keys(), data[:,1], label="group-level variance")
+    ax.plot(reps.keys(), data[:,2], label="residual variance")
+    ax.set_xscale('log')
+    ax.set_ylabel("repeatability from 4 weeks")
+    ax.set_xlabel("step length averaged over num of dataframes")
+    ax.legend()
+    fig.savefig(parameters.projectPath+"/repeatability_depending_on_averaging_cardinality.pdf")
+    return fig
 
 def plot_repeatability(df_r):
     fig, ax = plt.subplots(figsize=(7,3.5))

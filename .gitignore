@@ -1,5 +1,8 @@
 
 *.pyc 
-notebooks/ 
+notebooks/*.ipynb
 */.ipynb_checkpoints/*
+
+# dont ignore the notebook coefficient_of_variation 
+!*/coefficient_of_variation.ipynb
 

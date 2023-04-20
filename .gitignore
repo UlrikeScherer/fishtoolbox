@@ -7,3 +7,4 @@ notebooks/*.ipynb
 !*/coefficient_of_variation.ipynb
 
 .vscode/*
+.venv

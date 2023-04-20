@@ -6,11 +6,17 @@ from random import sample
 from time import gmtime, strftime
 import motionmapperpy as mmpy
 from clustering.clustering import get_results_filepath, boxplot_characteristics_of_cluster
-from fishproviz.config import BLOCK, VIS_DIR
+from config import BLOCK, VIS_DIR
 from .processing import get_regions_for_fish_key
 from .utils import pointsInCircum
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
+# A helper function that removes the spline from the given axis ax.
+def remove_spines(ax):
+    """Remove the spines from the given axis ax."""
+    for s in ax.spines.values():
+        s.set_visible(False)
+        
 def plot_lines_for_cluster2(
     positions,
     projections,

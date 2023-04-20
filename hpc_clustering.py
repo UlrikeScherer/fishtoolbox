@@ -1,20 +1,15 @@
 from cuml.manifold import TSNE
 from cuml import PCA, KMeans
-import matplotlib.pyplot as plt
-import pandas as pd
-from matplotlib import cm
-import numpy as np
 import time, sys
-from scipy.spatial.distance import cdist
 
 # local imports
-from fishproviz.config import N_FISHES
+from config import N_FISHES
 from fishproviz.utils import get_all_days_of_context, get_camera_pos_keys
-from fishproviz.clustering.transitions_cluster import (
+from clustering.transitions_cluster import (
     cluster_distribution_over_days,
     plot_transitions_individuality_development, 
 )
-from fishproviz.clustering.clustering import (
+from clustering.clustering import (
     clustering,
     get_results_filepath,
     load_traces,
@@ -28,7 +23,7 @@ from fishproviz.clustering.clustering import (
     fish_individuality_tsne,
     fish_development_tsne,
 )
-from fishproviz.visualizations.pca_plots import bar_plot_pca, bar_plot_pca_loadings, elbow_method_kmeans
+from clustering.pca_plots import bar_plot_pca, bar_plot_pca_loadings, elbow_method_kmeans
 
 
 def execute_clustering(trace_size, *n_clusters):

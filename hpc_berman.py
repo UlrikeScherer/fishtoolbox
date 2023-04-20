@@ -1,9 +1,8 @@
 import motionmapperpy as mmpy
-from fishproviz.data_factory.processing import compute_all_projections
-from fishproviz.data_factory.processing import return_normalization_func
-from fishproviz.data_factory.utils import set_parameters
-from fishproviz.utils import *
-from fishproviz.utils.tank_area_config import *
+from data_factory.processing import compute_all_projections
+from data_factory.processing import return_normalization_func
+from data_factory.utils import set_parameters
+from fishproviz.utils import get_camera_pos_keys
 import h5py, hdf5storage, pickle, glob
 import time
 
@@ -22,8 +21,8 @@ def factory_main():
     parameters.umap_module = UMAP
     
     #mmpy.createProjectDirectory(parameters.projectPath)
-    #fish_keys = get_camera_pos_keys()
-    #compute_all_projections(parameters.projectPath,fish_keys, recompute=False)
+    fish_keys = get_camera_pos_keys()
+    #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")

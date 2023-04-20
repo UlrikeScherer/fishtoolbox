@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from .processing import load_trajectory_data_concat
 from .utils import get_days, get_individuals_keys, set_parameters, split_into_batches
-from fishproviz.config import BACK
+from config import BACK
 from src.utils.transformation import px2cm
 
 def dataset_prep(parameters, fish_ids, batch_size_minutes=5):

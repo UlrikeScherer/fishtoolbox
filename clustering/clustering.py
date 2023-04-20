@@ -1,4 +1,4 @@
-from fishproviz.config import (
+from config import (
     BATCH_SIZE,
     BLOCK,
     BACK,
@@ -11,7 +11,7 @@ from fishproviz.config import (
     DATAFRAME,
 )
 from fishproviz.utils.error_filter import all_error_filters, error_default_points
-from fishproviz.utils.plot_helpers import remove_spines
+from data_factory.plotting import remove_spines
 from fishproviz.utils.transformation import rotation, pixel_to_cm
 from fishproviz.metrics import (
     entropy,
@@ -22,7 +22,6 @@ from fishproviz.metrics import (
 )
 from fishproviz.utils import get_fish2camera_map, csv_of_the_day, get_date_string
 from fishproviz.utils.tank_area_config import get_area_functions
-from fishproviz.methods import calc_steps, turning_directions, distance_to_wall_chunk
 from itertools import product
 from sklearn.preprocessing import normalize
 import os

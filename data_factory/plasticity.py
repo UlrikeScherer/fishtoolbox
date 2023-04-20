@@ -5,8 +5,8 @@ from scipy.stats import entropy as entropy_m
 from scipy.stats import pearsonr
 import numpy as np
 import matplotlib.pyplot as plt
-from fishproviz.config import BLOCK1, BLOCK2, HOURS_PER_DAY
-from src.utils.plot_helpers import remove_spines
+from config import BLOCK1, BLOCK2, HOURS_PER_DAY
+from data_factory.plotting import remove_spines
 from .utils import get_days, split_into_batches
 from .processing import load_trajectory_data_concat
 

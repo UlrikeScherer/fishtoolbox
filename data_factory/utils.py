@@ -3,7 +3,7 @@ import math
 import os
 import numpy as np
 import bisect
-from fishproviz.config import DIR_CSV_LOCAL, DIR_CSV_LOCAL, projectPath
+from config import projectPath
 import motionmapperpy as mmpy
 
 def pointsInCircum(r,n=100):
@@ -52,16 +52,6 @@ def get_cluster_sequences(clusters, cluster_ids=range(1,6), sw=6*60*5, th=0.6):
         results = [(rs[m['idx'][0]],re[m['idx'][1]], m['score']) for m in matches]
         records[cid].extend(results)
     return records
-
-def create_subset_data(k=25):
-    import glob, random, shutil, os
-    list_of_files = random.choices(glob.glob(f"{DIR_CSV_LOCAL}/{DIR_CSV_LOCAL}/*/*/*/*.csv"), k=k)
-
-    for file in list_of_files:
-        dist = file.replace(DIR_CSV_LOCAL.split("/")[-1],"FE_tracks_subset", 1)
-        dist = "/".join(dist.split("/")[:-1])
-        os.makedirs(dist ,exist_ok=True)
-        shutil.copy(file, dist)
 
 def split_into_batches(time, data, batch_size=60*60*5):
     """

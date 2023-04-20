@@ -2,8 +2,8 @@ from graph_tool.draw import Graph, graph_draw
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from fishproviz.config import CAM_POS, DAY
-from fishproviz.clustering.clustering import get_results_filepath
+from config import CAM_POS, DAY
+from clustering.clustering import get_results_filepath
 from fishproviz.utils import get_all_days_of_context, get_date_string
 
 

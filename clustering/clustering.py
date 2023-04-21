@@ -94,7 +94,7 @@ def calculate_traces(fish_indices, days, trace_size, write_to_file=False):
             b = pd.concat(batches)
             fit_len = fit_data_to_trace_size(len(b), trace_size)
             data = b[["xpx", "ypx"]].to_numpy()[:fit_len]
-            area_tuple = (fish_key, area_func(fish_key, day=d))
+            area_tuple = (fish_key, area_func(fish_key))
             # filter for errorouse data points
             filter_index = all_error_filters(data, area_tuple)[:fit_len]
 

@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import multiprocessing as mp
 
-from fishproviz.utils.excluded_days import get_excluded_days, block1_remove
+from .excluded_days import get_excluded_days, block1_remove
 from .utils import get_days, set_parameters
 from fishproviz.methods import turning_directions, distance_to_wall_chunk, calc_steps
 from fishproviz.utils.tank_area_config import get_area_functions

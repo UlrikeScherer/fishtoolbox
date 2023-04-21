@@ -16,3 +16,13 @@ Install the following packages:
 - `srun --pty --partition=ex_scioi_gpu --gres=gpu:1 --time=0-02:00 bash -i` to start a new shell with a GPU
 - `ssh -L localhost:5000:localhost:5000 user.name@[IP address]` on your local machine
 - `jupyter-lab --no-browser --port=5000`
+
+### Start
+- set the BLOCK variable to BLOCK1 or BLOCK2 in `config.py`
+- set the projectPath variable to the path of a new folder in `config.py` this is where the data will be stored
+- setup fishprovis with the correct paths and area configurations. 
+- export the preprocessed data with `python3 -m data_factory.processing` 
+- repeat for the other block
+
+
+

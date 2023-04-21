@@ -203,6 +203,8 @@ if __name__ == "__main__":
     fish_keys = get_camera_pos_keys() # get all fish keys
     for key in block1_remove:
         if BLOCK in key:
-            fish_keys.remove("_".join(key.split("_")[1:]))
+            fk = "_".join(key.split("_")[1:])
+            if fk in fish_keys:
+                fish_keys.remove(fk)
     excluded=get_excluded_days(list(map(lambda f: f"{BLOCK}_{f}", fish_keys)))
     compute_all_projections(parameters.projectPath,fish_keys,excluded_days=excluded,recompute=True)

@@ -2,7 +2,7 @@ import pandas as pd
 import calendar
 import locale
 locale.setlocale(locale.LC_TIME, 'C')
-block1_remove = ["block1_23442333_back", "block1_23520264_front", "block2_23520266_front"]
+block1_remove = ["block1_23442333_back", "block1_23520264_front", "block2_23520266_front"] 
 
 def filter_ids(row, fid):
     #print(row)

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from .processing import load_trajectory_data
 from .utils import get_individuals_keys, get_days, set_parameters, split_into_batches
-from data_factory.plotting import remove_spines
+from data_factory.plot_helpers import remove_spines
 from config import BLOCK1, BLOCK2
 
 N_HOURS = 8

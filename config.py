@@ -13,4 +13,4 @@ BATCH="batch"
 DATAFRAME="DATAFRAME"
 HOURS_PER_DAY = 8
 FRAMES_PER_SECOND = 5
-projectPath = "/Volumes/Extreme_SSD/content/Fish_moves_2023"
+projectPath = "/Volumes/Extreme_SSD/content/Fish_moves_final"

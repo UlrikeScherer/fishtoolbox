@@ -40,10 +40,9 @@ def repeatability(step_list):
     step_std =np.array(list(map(np.var,step_list)))
     step_mean = np.array(list(map(np.mean,step_list)))
     V_w = step_std.mean() #weighted_avg_and_std(step_std, weights)[0]
-    #V_t = np.concatenate(step_list).var()
     V_g = step_mean.var() #weighted_avg_and_std(step_mean, weights)[1]
     R=V_g/(V_g+V_w)
-    return R #,V_w,V_g
+    return R, V_w, V_g
 
 def run_repeatability():
     parameters = set_parameters()

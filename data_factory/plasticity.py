@@ -6,7 +6,7 @@ from scipy.stats import pearsonr
 import numpy as np
 import matplotlib.pyplot as plt
 from config import BLOCK1, BLOCK2, HOURS_PER_DAY
-from data_factory.plotting import remove_spines
+from data_factory.plot_helpers import remove_spines
 from .utils import get_days, split_into_batches
 from .processing import load_trajectory_data_concat
 
@@ -88,7 +88,8 @@ def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, n
     if not by_the_hour:
         all_vals_df = all_vals_df.join(pd.DataFrame({f"date_{BLOCK1}":map(day2date,get_days(parameters, prefix=BLOCK1)), f"date_{BLOCK2}":map(day2date, get_days(parameters, prefix=BLOCK2))}, index=all_vals_df.index), how="left")
     time_str = "hourly" if by_the_hour else "daily"
-    filename = f"{dir_p}/{name}_{time_str}_{n_clusters}"
+    
+    filename = f"{dir_p}/{name}_{time_str}_%.3d"%n_clusters
     all_vals_df.to_csv(f"{filename}.csv")
     fig = plot_index_columns(df=all_vals_df, columns=fish_keys, title=f"{name} {time_str} {n_clusters}", filename=filename, ylabel="entropy", xlabel=time_str, fit_degree=fit_degree, forall=forall)
     return fig, all_vals_df
@@ -166,7 +167,7 @@ def plasticity_cv_fig(parameters, fish_keys, n_df=50, forall=False, by_the_hour=
         if not by_the_hour:
             df = df.join(pd.DataFrame({f"date_{BLOCK1}":map(day2date,get_days(parameters, prefix=BLOCK1)), f"date_{BLOCK2}":map(day2date, get_days(parameters, prefix=BLOCK2))}, index=df.index), how="left")
         _ = plot_index_columns(df, ax=axes[i], columns=fish_keys, ylabel="cv", xlabel="hour", title=names[i], forall=forall, fit_degree=fit_degree)
-        df.to_csv(f"{filename}/cv_{names[i]}_{time_str}_ndf_{n_df}.csv")
+        df.to_csv(f"{filename}/cv_{names[i]}_{time_str}_ndf_%.3d.csv"%n_df)
 
     fig.tight_layout()
     fig.savefig(f"{filename}/cv_{time_str}_ndf_{n_df}.pdf")

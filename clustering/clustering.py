@@ -11,7 +11,7 @@ from config import (
     DATAFRAME,
 )
 from fishproviz.utils.error_filter import all_error_filters, error_default_points
-from data_factory.plotting import remove_spines
+from data_factory.plot_helpers import remove_spines
 from fishproviz.utils.transformation import rotation, pixel_to_cm
 from fishproviz.metrics import (
     entropy,

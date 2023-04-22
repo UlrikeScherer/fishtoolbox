@@ -70,7 +70,6 @@ def run_repeatability():
 def df_table(data,block, fish_keys):
     return pd.concat([pd.DataFrame({"step":d["projections"][:,0],"time":d["df_time_index"].flatten()}) for d in data],keys=[fish_keys.index(block+"_"+d["fish_key"][0][0]) for d in data]).reset_index()
 
-
 def get_melted_table(data_avg_step):
     melted = pd.melt(data_avg_step, id_vars=["block1","block2","DATAFRAMES"],value_vars=data_avg_step.columns[3:], var_name="id", value_name="step")
     split_cols = melted['id'].str.split('_', expand=True)

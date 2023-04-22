@@ -11,11 +11,6 @@ from .processing import get_regions_for_fish_key
 from .utils import pointsInCircum
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
-# A helper function that removes the spline from the given axis ax.
-def remove_spines(ax):
-    """Remove the spines from the given axis ax."""
-    for s in ax.spines.values():
-        s.set_visible(False)
         
 def plot_lines_for_cluster2(
     positions,

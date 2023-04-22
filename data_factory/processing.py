@@ -79,7 +79,7 @@ def compute_all_projections(projectPath, fish_keys=None, recompute=False, exclud
         pool = mp.Pool(numProcessors)
         days = get_days_in_order(camera=fk.split("_")[0], is_back=fk.split("_")[1]==BACK)
         outs = pool.starmap(compute_and_write_projection, 
-                [(fk, day, (fk, area_f(fk,day)), projectPath + f'/Projections/{BLOCK}_{fk}_{day}_pcaModes.mat', recompute, excluded_days) for day in days])
+                [(fk, day, (fk, area_f(fk)), projectPath + f'/Projections/{BLOCK}_{fk}_{day}_pcaModes.mat', recompute, excluded_days) for day in days])
         pool.close()
         pool.join()
         print('\t Processed fish #%4i %s out of %4i in %0.02fseconds.\n'%(i+1, fk, len(fish_keys), time.time()-t1))

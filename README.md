@@ -24,5 +24,18 @@ Install the following packages:
 - export the preprocessed data with `python3 -m data_factory.processing` 
 - repeat for the other block
 
+# Parameters 
+- `parameters = set_parameters()` to get the parameters that are used throughout the fishtoolbox 
+
+# Data Factory 
+## Processing 
+- `load_trajectory_data_concat` load the x y coordinates, projections (the three features), time index, area
+- `load_zVals_concat` load the umap data
+- `load_clusters_concat` load cluster labels for individuals and day 
+    paramerter.kmeans = 5 to specify the clustering that you want to load. 
+
+# Poltting 
+## Caterpillar Plots
+- ethnogram_of_clusters
 
 

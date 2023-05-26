@@ -3,8 +3,9 @@
 notebooks/*.ipynb
 */.ipynb_checkpoints/*
 
-# dont ignore the notebook coefficient_of_variation 
+# dont ignore the specified notebooks 
 !*/coefficient_of_variation.ipynb
+!*/analysis_watershed.ipynb
 
 .vscode/*
 .venv

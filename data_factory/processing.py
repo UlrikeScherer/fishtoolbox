@@ -10,7 +10,7 @@ from fishproviz.utils.tank_area_config import get_area_functions
 from fishproviz.utils.error_filter import all_error_filters
 from fishproviz.utils.transformation import px2cm, normalize_origin_of_compartment
 from fishproviz.metrics.metrics import update_filter_three_points
-from config import BACK, BATCH_SIZE, FRAMES_PER_SECOND, HOURS_PER_DAY
+from config import BLOCK, BACK, BATCH_SIZE, FRAMES_PER_SECOND, HOURS_PER_DAY
 import numpy as np
 import hdf5storage
 from fishproviz.utils import csv_of_the_day
@@ -108,7 +108,8 @@ def load_trajectory_data_concat(parameters,fk="", day=""):
 def load_zVals(parameters,fk="", day=""):
     data_by_day = []
     zValstr = get_zValues_str(parameters)
-    pfile = glob.glob(parameters.projectPath+f'/Projections/{fk}*_{day}*_pcaModes_{zValstr}.mat')
+    filesPath = parameters.projectPath+f'/Projections/{BLOCK}_{fk}*_{day}*_pcaModes_{zValstr}.mat'
+    pfile = glob.glob(filesPath)
     pfile.sort()
     for f in pfile: 
         data = hdf5storage.loadmat(f)

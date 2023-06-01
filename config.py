@@ -6,10 +6,6 @@ if not os.path.exists("config.env"):
     shutil.copyfile("scripts/config.env.default", "config.env")
 
 load_envbash("config.env")
-
-BLOCK1, BLOCK2 = "block1", "block2"
-BLOCK = BLOCK1
-
 N_FISHES = 24
 BATCH_SIZE = 1000
 BACK = "back"
@@ -23,3 +19,6 @@ DATAFRAME="DATAFRAME"
 HOURS_PER_DAY = 8
 FRAMES_PER_SECOND = 5
 projectPath = os.environ["projectPath"]
+BLOCK1 = os.environ["BLOCK1"]
+BLOCK2 = os.environ["BLOCK2"]
+BLOCK = os.environ["BLOCK"]

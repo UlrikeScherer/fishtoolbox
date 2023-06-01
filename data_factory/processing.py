@@ -20,7 +20,14 @@ WAVELET = 'wavelet'
 clusterStr = 'clusters'
 
 def transform_to_traces_high_dim(data,frame_idx, filter_index, area_tuple):
-    L = data.shape[0]
+    """
+    Transform the xy data into the feature space
+    :param data: xy data
+    :param frame_idx: frame index
+    :param filter_index: filter index
+    :param area_tuple: area tuple
+    :return: transformed data [frame, steps, turning angle, distance to the wall, x, y] and new area
+    """
     fk, area = area_tuple
     data, new_area = normalize_origin_of_compartment(data, area, BACK in fk)
     steps = px2cm(calc_steps(data))
@@ -108,7 +115,7 @@ def load_trajectory_data_concat(parameters,fk="", day=""):
 def load_zVals(parameters,fk="", day=""):
     data_by_day = []
     zValstr = get_zValues_str(parameters)
-    filesPath = parameters.projectPath+f'/Projections/{BLOCK}_{fk}*_{day}*_pcaModes_{zValstr}.mat'
+    filesPath = parameters.projectPath+f'/Projections/{fk}*_{day}*_pcaModes_{zValstr}.mat'
     pfile = glob.glob(filesPath)
     pfile.sort()
     for f in pfile: 

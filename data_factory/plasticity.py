@@ -49,7 +49,7 @@ def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel
             leg_h.append((line,"%s - pearsonr: %0.3f"%(col[13:17], corr)))
 
     if forall:
-        x = np.column_stack((df.index.to_numpy() for i in range(len(columns)))).reshape(-1).astype(np.int)
+        x = np.column_stack((df.index.to_numpy() for i in range(len(columns)))).reshape(-1).astype(int)
         y = df.to_numpy().reshape(-1).astype(np.float64)
         is_not_nan = ~ np.isnan(y)
         x,y = x[is_not_nan],y[is_not_nan]
@@ -70,21 +70,26 @@ def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel
 
 def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, name="cluster_entropy_for_days", by_the_hour=False, fit_degree=1, forall=True):
     days = get_days(parameters,prefix=fish_keys[0].split("_")[0])
-    all_vals_df = pd.DataFrame(columns=fish_keys, index=range(1,1+(len(days)*HOURS_PER_DAY if by_the_hour else len(days))))
+    columns=fish_keys
+    index=list(range(1,1+(len(days)*HOURS_PER_DAY if by_the_hour else len(days))))
+    entro = np.empty((len(index), len(columns)))
+    entro.fill(np.nan)
     for j,fk in enumerate(fish_keys):
         for i,d in enumerate(get_days(parameters=parameters, prefix=fk)):
             clusters = get_clusters_func(fk,d)
             if clusters is not None:
                 if by_the_hour:
                     time_df = load_trajectory_data_concat(parameters, fk, d)["df_time_index"]
-                    _,cluster_hourly = split_into_batches(time_df, clusters)
-                    all_vals_df.loc[HOURS_PER_DAY*(i):HOURS_PER_DAY*(i+1),fk] = [entropy_m(compute_cluster_distribution(c)) for c in cluster_hourly]
+                    time_split, cluster_hourly = split_into_batches(time_df, clusters)
+                    h_of_split = [int(HOURS_PER_DAY*(i)+((t[0]-time_df[0])//(5*(60**2)))) for t in time_split]
+                    entro[h_of_split,j] = [entropy_m(compute_cluster_distribution(c, n_clusters)) for c in cluster_hourly]
                 else:
                     dist = compute_cluster_distribution(clusters,n_clusters)
-                    all_vals_df.loc[i+1,fk]= entropy_m(dist)
+                    entro[i,j]= entropy_m(dist)
     
     dir_p = f"{parameters.projectPath}/{DIR_PLASTCITY}/{name}"
     os.makedirs(dir_p, exist_ok=True)
+    all_vals_df = pd.DataFrame(entro, columns=fish_keys, index=index)
     if not by_the_hour:
         all_vals_df = all_vals_df.join(pd.DataFrame({f"date_{BLOCK1}":map(day2date,get_days(parameters, prefix=BLOCK1)), f"date_{BLOCK2}":map(day2date, get_days(parameters, prefix=BLOCK2))}, index=all_vals_df.index), how="left")
     time_str = "hourly" if by_the_hour else "daily"

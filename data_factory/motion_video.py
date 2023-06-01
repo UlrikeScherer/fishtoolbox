@@ -7,15 +7,21 @@ from matplotlib.animation import FuncAnimation
 # moviepy helps open the video files in Python
 from moviepy.editor import VideoClip, VideoFileClip
 from moviepy.video.io.bindings import mplfig_to_npimage
+from data_factory.plotting import get_umap_density_figure, get_watershed_boundaries_figure
 import motionmapperpy as mmpy
 
-from .plotting import get_color_map
+#from .plotting import get_color_map
 from .processing import load_summerized_data, get_fish_info_from_wshed_idx, get_regions_for_fish_key
 from .utils import get_cluster_sequences
 from fishproviz.utils import get_date_string, get_seconds_from_day, get_camera_pos_keys, get_all_days_of_context
 
 STIME = "060000"
 VIDEOS_DIR = "videos"
+
+def get_color_map(n):
+    cmap = mmpy.motionmapper.gencmap()
+    return lambda cid: cmap(cid*64//n)
+
 def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=False, filename="", score=""):
     try:
         tqdm._instances.clear()
@@ -29,42 +35,55 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=Fa
     clusters = sum_data["clusters"]
     area_box = sum_data['area']
 
-    fig, axes = plt.subplots(1, 2, figsize=(10,5))
-    tfolder = parameters.projectPath+'/%s/'%parameters.method
-    with h5py.File(tfolder + 'training_embedding.mat', 'r') as hfile:
-        trainingEmbedding = hfile['trainingEmbedding'][:].T
-        
-    m = np.abs(trainingEmbedding).max()
-    sigma=1.0
-    _, xx, density = mmpy.findPointDensity(trainingEmbedding, sigma, 511, [-m-10, m+10])
-    axes[0].imshow(density, cmap=mmpy.gencmap(), extent=(xx[0], xx[-1], xx[0], xx[-1]), origin='lower')
-    axes[0].axis('off')
-    axes[0].set_title(' ')
-    sc = axes[0].scatter([],[],marker='o', c="b", s=300)
-    lineZ = axes[0].plot([], [], "-", color="red")
-    
+    fig, (ax1,ax2) = plt.subplots(1, 2, figsize=(10,5))
+   
+    get_umap_density_figure(
+        umap_embedding= wshedfile['density'],
+        extent_factor= wshedfile['xx'][0][-1],
+        overloaded_figure= (fig,ax1),
+        include_axis_visualization= False,
+        plot_figure= False
+        )
+    get_watershed_boundaries_figure(
+        boundaries_embedding= wshedfile['wbounds'],
+        extent_factor= wshedfile['xx'][0][-1],
+        original_figure_width= wshedfile['density'].shape[0],
+        overloaded_figure= (fig,ax1),
+        include_axis_visualization= False,
+        plot_figure= False
+        )
+    # zoom in on ax1 by 2 std using the extent factor of the density plot
+    #ax1.set_xlim(
+    ax1.axis('off')
+    ax1.set_title(' ')
+
+    # tight layout 
+    fig.tight_layout()
+
+    #ax1.set_xlim
+    lineZ = ax1.plot([], [], "-", color="red", alpha=0.5, linewidth=2) 
+    sc = ax1.scatter([],[],marker='o', c="b", s=50)
     area_box = np.concatenate((area_box, [area_box[0]]))
-    axes[1].plot(*area_box.T)
-    (line,) = axes[1].plot([],[], "-o")
-    tstart = start
+    ax2.plot(*area_box.T, color="black")
+    (line,) = ax2.plot([],[], "-o", markersize=3, color="blue")
+    tstart = start 
     
     cmap = get_color_map(clusters.max())
     def animate(t):
-        t = int(t*50)+tstart
+        t = int(t*20)+tstart
         line.set_data(*positions[t-100:t+100].T)
-        axes[1].axis('off')
-        axes[0].set_title('%s %s H:M:S: %s     ratio: %.3f'%(fish_key, get_date_string(day), strftime("%H:%M:%S",gmtime(t//5)), score))
+        ax2.axis('off')
+        ax1.set_title('%s %s H:M:S: %s     ratio: %.3f'%(fish_key, get_date_string(day), strftime("%H:%M:%S",gmtime(t//5)), score))
+        lineZ[0].set_data(*zValues[t-100:t+100].T) 
         sc.set_offsets(zValues[t])
         sc.set_color(cmap(clusters[t]))
-        lineZ[0].set_data(*zValues[t-100:t+1].T)
         return mplfig_to_npimage(fig) #im, ax
 
     anim = VideoClip(animate, duration=20) # will throw memory error for more than 100.
     plt.close()
     if save:
         dir_v = f'{parameters.projectPath}/{VIDEOS_DIR}/{parameters.kmeans}_clusters'
-        if not os.path.exists(dir_v):
-            os.mkdir(dir_v)
+        os.makedirs(dir_v, exist_ok=True)
         anim.write_videofile(f'{dir_v}/{filename}{fish_key}_{day}.mp4', fps=10, audio=False, threads=1)
     return anim
 

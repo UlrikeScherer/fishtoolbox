@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from config import CAM_POS, DAY, graphToolInstallationPath
+from config import CAM_POS, DAY#, graphToolInstallationPath
 
 # native graph-tool installation
 import sys
-sys.path.append(graphToolInstallationPath)
+#sys.path.append(graphToolInstallationPath)
 from graph_tool.all import Graph
 from graph_tool.draw.cairo_draw import graph_draw
 

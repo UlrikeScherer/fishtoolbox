@@ -23,14 +23,11 @@ from fishproviz.metrics import (
 from fishproviz.utils import get_fish2camera_map, csv_of_the_day, get_date_string
 from fishproviz.utils.tank_area_config import get_area_functions
 from itertools import product
-from sklearn.preprocessing import normalize
 import os
 import pandas as pd
 from scipy.spatial import ConvexHull
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 from random import sample
 from sklearn.cluster import MiniBatchKMeans
 
@@ -240,70 +237,11 @@ def clustering(traces, n_clusters, model=None, rating_feature=None):
         renamed_clusters[clusters == j] = i
     return renamed_clusters
 
-
-def TSNE_vis(X_embedded):
-    cmap = ["Blues", "Reds"]
-    p = sns.kdeplot(
-        x=X_embedded[:, 0], y=X_embedded[:, 1], cmap=cmap[0], shade=True, thresh=0
-    )
-    print(p)
-    # plt.scatter(X_embedded[i*half:(i+1)*half,0], X_embedded[i*half:(i+1)*half, 1], marker="o", label=i, alpha=0.5)
-    plt.savefig("TSNE.pdf")
-    return p
-
-
 def get_convex_hull(points):
     hull = ConvexHull(points)
     cycle = points[hull.vertices]
     cycle = np.concatenate([cycle, cycle[:1]])
     return cycle
-
-
-def TSNE_vis_2(
-    X_embedded, centers=None, clusters=None, scatter=True, fig_name="TSNE_vis"
-):
-    x = X_embedded[:, 0]
-    y = X_embedded[:, 1]
-    res = go.Histogram2dContour(x=x, y=y, colorscale="Blues")
-    fig = go.Figure(res)
-    if centers is not None:
-        fig.add_trace(
-            go.Scatter(
-                x=centers[:, 0],
-                y=centers[:, 1],
-                xaxis="x",
-                yaxis="y",
-                mode="markers",
-                marker=dict(color="rgba(255, 255, 102,0.5)", size=20),
-                text=[
-                    "cluster %d, n: %d" % (i, n) for (i, n) in enumerate(centers[:, 2])
-                ],
-            )
-        )
-    if scatter:
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=y,
-                xaxis="x",
-                yaxis="y",
-                mode="markers",
-                marker=dict(
-                    cmax=clusters.max(),
-                    cmin=0,
-                    color=clusters,
-                    colorbar=dict(title="Clusters"),
-                    colorscale="Viridis",
-                    # color = 'rgba(0,0,0,0.1)',
-                    size=3,
-                    opacity=0.5,
-                ),
-            )
-        )
-
-    fig.update_layout(height=600, width=600)
-    fig.write_image("%s.pdf" % fig_name)
-    return fig
 
 
 def get_neighbourhood_selection(X_embedded, nSs, c_x=None, c_y=None, radius=1):

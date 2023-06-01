@@ -9,3 +9,6 @@ notebooks/*.ipynb
 
 .vscode/*
 .venv
+config.env
+
+

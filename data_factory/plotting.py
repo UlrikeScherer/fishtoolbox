@@ -129,11 +129,11 @@ def plot_transition_rates(clusters, filename, cluster_remap=[(0,1)]):
                               cmap=get_color_map(n_clusters))
     return G
 
-# TODO: scatter individual data points umap
 
 def load_watershed_file(wshed_path) -> dict:
     wshed_dict = hdf5storage.loadmat(wshed_path)
     return wshed_dict
+
 
 def get_umap_density_figure(
         umap_embedding, 
@@ -165,6 +165,7 @@ def get_umap_density_figure(
     if plot_figure:
         fig.show()
     return fig,ax
+
 
 def get_watershed_boundaries_figure(
         boundaries_embedding, 
@@ -211,6 +212,7 @@ def get_watershed_boundaries_figure(
     if plot_figure:
         fig.show()
     return fig,ax
+
 
 def get_watershed_clusters_figure(
         cluster_embeddings, 
@@ -304,6 +306,50 @@ def get_umap_trajectories_figure(
     ax.plot(
         zVals[:,0], zVals[:,1], 
         color=figure_color
+    )
+    ax.set_xlim(axis_limit_tuple[0])
+    ax.set_ylim(axis_limit_tuple[1])
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+
+def get_umap_scatter_figure_per_fk_day(
+        parameters, 
+        fish_key, 
+        day, 
+        point_size = 15,
+        alpha_transparency = 0.5,
+        figure_color= 'red',
+        data_restriction_limit = None, 
+        axis_limit_tuple = ([-100, 100], [-100, 100]),
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        plot_figure = False
+    ) -> plt.figure:
+    zVals = load_zVals_concat(
+        parameters= parameters,
+        fk= fish_key,
+        day= day
+    )['embeddings']
+    if isinstance(data_restriction_limit, int):
+        zVals = zVals[0:data_restriction_limit]
+    
+    if overloaded_figure:
+        fig, ax = overloaded_figure
+    else: 
+        fig, ax = plt.subplots()
+        
+    ax.scatter(
+        x = zVals[:,0], 
+        y = zVals[:,1], 
+        s = point_size,
+        alpha = alpha_transparency,
+        c = figure_color
     )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])

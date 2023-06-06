@@ -136,7 +136,13 @@ def load_watershed_file(wshed_path) -> dict:
     wshed_dict = hdf5storage.loadmat(wshed_path)
     return wshed_dict
 
-def get_umap_density_figure(umap_embedding, extent_factor, overloaded_figure=None, include_axis_visualization = False, plot_figure = False) -> plt.figure:
+def get_umap_density_figure(
+        umap_embedding, 
+        extent_factor, 
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        plot_figure = False
+    ) -> plt.figure:
     '''
     creates a density map from the umap embedding, stored in the watershed file
     '''
@@ -158,7 +164,14 @@ def get_umap_density_figure(umap_embedding, extent_factor, overloaded_figure=Non
         fig.show()
     return fig,ax
 
-def get_watershed_boundaries_figure(boundaries_embedding, extent_factor, original_figure_width= 611, overloaded_figure=None, include_axis_visualization = False, plot_figure = False) -> plt.figure:
+def get_watershed_boundaries_figure(
+        boundaries_embedding, 
+        extent_factor, 
+        original_figure_width= 611, 
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        plot_figure = False
+    ) -> plt.figure:
     '''
     creates a figure for the watershed boundaries by norming the its own figure sizes with 
     the figure sizes of the umap-trajectories. Please note the equation for the norming written below: \\
@@ -194,7 +207,14 @@ def get_watershed_boundaries_figure(boundaries_embedding, extent_factor, origina
         fig.show()
     return fig,ax
 
-def get_watershed_clusters_figure(cluster_embeddings, extent_factor, original_figure_width = 611, overloaded_figure=None, include_axis_visualization= False, plot_figure = False) -> plt.figure:
+def get_watershed_clusters_figure(
+        cluster_embeddings, 
+        extent_factor, 
+        original_figure_width = 611, 
+        overloaded_figure=None, 
+        include_axis_visualization= False, 
+        plot_figure = False
+    ) -> plt.figure:
     '''
     creates a figure with the watershed clusters and its respective cluster IDs, 
     not normed for the figure size of the umap-trajectories
@@ -232,7 +252,16 @@ def get_watershed_clusters_figure(cluster_embeddings, extent_factor, original_fi
     return fig, ax
 
 
-def get_umap_trajectories_figure(parameters, fish_key, day, figure_color= 'red', data_restriction_limit = None, overloaded_figure=None, include_axis_visualization = False, plot_figure = False) -> plt.figure:
+def get_umap_trajectories_figure(
+        parameters, 
+        fish_key, 
+        day, 
+        figure_color= 'red',
+        data_restriction_limit = None, 
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        plot_figure = False
+    ) -> plt.figure:
     '''
     creates a figure of the umap trajectories for a specific `fish_key` and `day`. 
     restricting the number of trajectories is possible by setting a numerical limit 
@@ -275,7 +304,8 @@ def plot_umap_trajectories_and_watershed_characteristics(
         mode = 'clusters', 
         data_restriction_limit= None, 
         include_axis_visualization= False, 
-        plot_figure= False) -> plt.figure:
+        plot_figure= False
+    ) -> plt.figure:
     ''' 
     plots umap-trajectories of a `fish_key` for a specific `day` and,
     depending on the mode, with either `clusters` a colorized overview of different 

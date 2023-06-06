@@ -325,19 +325,32 @@ def get_umap_scatter_figure_per_fk_day(
         point_size = 15,
         alpha_transparency = 0.5,
         figure_color= 'red',
-        data_restriction_limit = None, 
+        data_restriction = None, 
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
         plot_figure = False
     ) -> plt.figure:
+    ''' scatter trajectories data points for one fishkey for one day
+        by following a data_restriction rule, the following rules 
+        are supported and have to be formulated in a dictionary
+        >>> data_restriction: {'limit': 200} or {'nth_value': 50}
+        the arguments `point_size` and `alpha_transparency` directly
+        affect the visual appearance
+    '''
     zVals = load_zVals_concat(
         parameters= parameters,
         fk= fish_key,
         day= day
     )['embeddings']
-    if isinstance(data_restriction_limit, int):
-        zVals = zVals[0:data_restriction_limit]
+    
+    # TODO: * take the nr w max occurrences over a window
+    if data_restriction is not None:
+        if 'limit' in data_restriction:
+            zVals = zVals[0:data_restriction['limit']]
+        elif 'nth_value' in data_restriction:
+            zVals = zVals[0::data_restriction['nth_value']]
+
     
     if overloaded_figure:
         fig, ax = overloaded_figure

@@ -129,6 +129,8 @@ def plot_transition_rates(clusters, filename, cluster_remap=[(0,1)]):
                               cmap=get_color_map(n_clusters))
     return G
 
+# TODO: set limits for x-y axis
+# TODO: scatter individual data points umap
 
 def load_watershed_file(wshed_path) -> dict:
     wshed_dict = hdf5storage.loadmat(wshed_path)
@@ -170,7 +172,8 @@ def get_watershed_boundaries_figure(boundaries_embedding, extent_factor, origina
                     )
     bounds_aug_y_new = ((boundaries_embedding[0][1]
                      / (original_figure_width/(2*extent_factor))) 
-                     - extent_factor)
+                     - extent_factor
+                    )
     
     if overloaded_figure:
         fig, ax = overloaded_figure
@@ -191,8 +194,7 @@ def get_watershed_boundaries_figure(boundaries_embedding, extent_factor, origina
         fig.show()
     return fig,ax
 
-# TODO: implement extent factor for equivalent scaling of cluster embeddings and cluster ID
-def get_watershed_clusters_figure(cluster_embeddings, overloaded_figure=None, include_axis_visualization= False, plot_figure = False) -> plt.figure:
+def get_watershed_clusters_figure(cluster_embeddings, extent_factor, original_figure_width = 611, overloaded_figure=None, include_axis_visualization= False, plot_figure = False) -> plt.figure:
     '''
     creates a figure with the watershed clusters and its respective cluster IDs, 
     not normed for the figure size of the umap-trajectories
@@ -204,6 +206,7 @@ def get_watershed_clusters_figure(cluster_embeddings, overloaded_figure=None, in
         
     ax.imshow(
         X=cluster_embeddings, 
+        extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
         cmap=mmpy.gencmap()
     )
@@ -211,7 +214,15 @@ def get_watershed_clusters_figure(cluster_embeddings, overloaded_figure=None, in
     for i in np.unique(cluster_embeddings)[1:]:
         fontsize = 8
         xinds, yinds = np.where(cluster_embeddings == i)
-        ax.text(np.mean(yinds) - fontsize, np.mean(xinds) - fontsize, str(i), fontsize=fontsize, fontweight='bold')
+        xinds_new = ((xinds
+                    / (original_figure_width/(2*extent_factor))) 
+                    - extent_factor
+        )
+        yinds_new = ((yinds
+                    / (original_figure_width/(2*extent_factor))) 
+                    - extent_factor
+        )
+        ax.text(np.mean(yinds_new), np.mean(xinds_new), str(i), fontsize=fontsize, fontweight='bold')
     if include_axis_visualization:
         ax.axis('on')
     else:
@@ -256,39 +267,58 @@ def get_umap_trajectories_figure(parameters, fish_key, day, figure_color= 'red',
     return fig, ax
 
 
-def get_density_watershed_boundaries_trajectories_from_watershed_file(parameters, wshed_path, fish_key, day, data_restriction_limit=None, include_axis_visualization = False, plot_figure = False) -> plt.figure:
+def plot_umap_trajectories_and_watershed_characteristics(
+        parameters,
+        wshed_path,
+        fish_key,
+        day,
+        mode = 'clusters', 
+        data_restriction_limit= None, 
+        include_axis_visualization= False, 
+        plot_figure= False) -> plt.figure:
     ''' 
-    plots of a combination of the umap-density, the watershed-cluster boundaries 
-    and the umap-trajectories of a `fish_key` for a specific `day` are created, 
+    plots umap-trajectories of a `fish_key` for a specific `day` and,
+    depending on the mode, with either `clusters` a colorized overview of different 
+    clusters with cluster-ids or a combination of the umap-density and the 
+    watershed-cluster boundaries. 
     the number of trajectories can be limited using the `data_restriction_limit` flag.
     '''
     wshed_dict = load_watershed_file(wshed_path)
     
     fig, ax = plt.subplots()
+    if mode == 'clusters':
+        get_watershed_clusters_figure(cluster_embeddings = wshed_dict['LL'], 
+            extent_factor = wshed_dict['xx'][0][-1], 
+            original_figure_width = wshed_dict['density'].shape[0], 
+            overloaded_figure= (fig, ax), 
+            include_axis_visualization= False, 
+            plot_figure = False
+        )
+    else:
+        get_umap_density_figure(
+            umap_embedding= wshed_dict['density'],
+            extent_factor= wshed_dict['xx'][0][-1],
+            overloaded_figure= (fig,ax),
+            include_axis_visualization= False,
+            plot_figure= False
+        )
 
-    get_umap_density_figure(
-        umap_embedding= wshed_dict['density'],
-        extent_factor= wshed_dict['xx'][0][-1],
-        overloaded_figure= (fig,ax),
-        include_axis_visualization= False,
-        plot_figure= False
-    )
-
-    get_watershed_boundaries_figure(
-        boundaries_embedding= wshed_dict['wbounds'],
-        extent_factor= wshed_dict['xx'][0][-1],
-        original_figure_width= wshed_dict['density'].shape[0],
-        overloaded_figure= (fig,ax),
-        include_axis_visualization= False,
-        plot_figure= False
-    )
+        get_watershed_boundaries_figure(
+            boundaries_embedding= wshed_dict['wbounds'],
+            extent_factor= wshed_dict['xx'][0][-1],
+            original_figure_width= wshed_dict['density'].shape[0],
+            overloaded_figure= (fig,ax),
+            include_axis_visualization= False,
+            plot_figure= False
+        )
 
     get_umap_trajectories_figure(
         parameters = parameters,
         fish_key = fish_key,
         day= day,
         data_restriction_limit=data_restriction_limit,
-        overloaded_figure= (fig,ax)
+        overloaded_figure= (fig,ax),
+        plot_figure = False
     )
 
     if include_axis_visualization:

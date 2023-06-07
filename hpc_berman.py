@@ -5,6 +5,7 @@ from data_factory.utils import set_parameters
 from fishproviz.utils import get_camera_pos_keys
 import h5py, hdf5storage, pickle, glob
 import time
+import os
 
 
 def factory_main():
@@ -22,7 +23,7 @@ def factory_main():
     
     mmpy.createProjectDirectory(parameters.projectPath)
     fish_keys = get_camera_pos_keys()
-    compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
+    #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")

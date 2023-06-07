@@ -18,7 +18,8 @@ def factory_main():
                                  #% good number with 64GB RAM.
     parameters.embedding_batchSize = 30000  #% Lower this if you get a memory error when 
                                             #% re-embedding points on a learned map.
-    from cuml import UMAP
+    #from cuml import UMAP
+    from umap import UMAP
     parameters.umap_module = UMAP
     
     mmpy.createProjectDirectory(parameters.projectPath)

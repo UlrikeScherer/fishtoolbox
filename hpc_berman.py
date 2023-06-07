@@ -26,7 +26,7 @@ def factory_main():
     
     #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
-    indiviuals_ids = get_individuals_keys()
+    indiviuals_ids = get_individuals_keys(parameters=parameters)
     print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")

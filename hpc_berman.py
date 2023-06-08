@@ -1,10 +1,11 @@
 import motionmapperpy as mmpy
 from data_factory.processing import compute_all_projections
 from data_factory.processing import return_normalization_func
-from data_factory.utils import set_parameters
+from data_factory.utils import set_parameters, get_individuals_keys
 from fishproviz.utils import get_camera_pos_keys
 import h5py, hdf5storage, pickle, glob
 import time
+import os
 
 
 def factory_main():
@@ -17,13 +18,17 @@ def factory_main():
                                  #% good number with 64GB RAM.
     parameters.embedding_batchSize = 30000  #% Lower this if you get a memory error when 
                                             #% re-embedding points on a learned map.
-    from cuml import UMAP
+    #from cuml import UMAP
+    from umap import UMAP
     parameters.umap_module = UMAP
     
     mmpy.createProjectDirectory(parameters.projectPath)
     fish_keys = get_camera_pos_keys()
-    compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
+    
+    #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
+    indiviuals_ids = get_individuals_keys(parameters=parameters)
+    print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")
     mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)

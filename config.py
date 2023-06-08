@@ -1,11 +1,12 @@
 from envbash import load_envbash
 import os
 import shutil
-if not os.path.exists("config.env"):
+config_path = os.path.dirname(os.path.realpath(__file__))
+if not os.path.exists(f"{config_path}/config.env"):
     # copy "scripts/config.env.default" to "config.env" with shutil.copyfile(src, dst)
-    shutil.copyfile("scripts/config.env.default", "config.env")
+    shutil.copyfile(f"{config_path}/scripts/config.env.default", "config.env")
 
-load_envbash("config.env")
+load_envbash(f"{config_path}/config.env")
 N_FISHES = 24
 BATCH_SIZE = 1000
 BACK = "back"

@@ -9,7 +9,7 @@ import motionmapperpy as mmpy
 from clustering.clustering import get_results_filepath, boxplot_characteristics_of_cluster
 from config import BLOCK, VIS_DIR
 from .processing import get_regions_for_fish_key, load_zVals_concat
-from .utils import pointsInCircum
+from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
         
@@ -331,10 +331,10 @@ def get_umap_scatter_figure_per_fk_day(
         include_axis_visualization = False, 
         plot_figure = False
     ) -> plt.figure:
-    ''' scatter trajectories data points for one fishkey for one day
-        by following a data_restriction rule, the following rules 
+    ''' scatter umap-trajectories data points for one fishkey for one day
+        by following a `data_restriction` rule, the following rules 
         are supported and have to be formulated in a dictionary
-        >>> data_restriction: {'limit': 200} or {'nth_value': 50}
+        >>> data_restriction: {'limit': 200} or {'nth_value': 50} or None
         the arguments `point_size` and `alpha_transparency` directly
         affect the visual appearance
     '''
@@ -344,7 +344,6 @@ def get_umap_scatter_figure_per_fk_day(
         day= day
     )['embeddings']
     
-    # TODO: * take the nr w max occurrences over a window
     if data_restriction is not None:
         if 'limit' in data_restriction:
             zVals = zVals[0:data_restriction['limit']]
@@ -364,6 +363,66 @@ def get_umap_scatter_figure_per_fk_day(
         alpha = alpha_transparency,
         c = figure_color
     )
+    ax.set_xlim(axis_limit_tuple[0])
+    ax.set_ylim(axis_limit_tuple[1])
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+
+def umap_scatter_figure_for_all(
+        parameters, 
+        point_size = 15,
+        alpha_transparency = 0.5,
+        figure_color= 'red',
+        data_restriction = None, 
+        elements_restriction = None,
+        axis_limit_tuple = ([-100, 100], [-100, 100]),
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        plot_figure = False
+    ) -> plt.figure:
+    '''
+    scatter umap-trajectory points for the whole dataset of all fish_keys and day
+    by following a `data_restriction` rule, the following rules 
+    are supported and have to be formulated in a dictionary
+    >>> data_restriction: {'limit': 200} or {'nth_value': 50}
+    the arguments `point_size` and `alpha_transparency` directly
+    affect the visual appearance.
+    By using an `elements_restriction`, it is possible to only use a certain number 
+    of samples instead of the whole dataset.
+    '''
+
+    if overloaded_figure:
+        fig, ax = overloaded_figure
+    else: 
+        fig, ax = plt.subplots()
+        
+    fishkey_list = get_individuals_keys(parameters= parameters)
+    days_list = get_days(parameters= parameters)
+
+    elements_counter = 0
+    for fk in fishkey_list:
+        for day in days_list:
+            zVal_path = parameters.projectPath+f'/Projections/{fk}_{day}_pcaModes_uVals.mat'
+            if os.path.exists(zVal_path):
+                elements_counter += 1
+                if (elements_restriction is not None) and (elements_counter > elements_restriction):
+                    return (fig, ax)
+                fig, ax = get_umap_scatter_figure_per_fk_day(
+                    parameters= parameters,
+                    fish_key= fk,
+                    day= day,
+                    point_size= point_size,
+                    alpha_transparency= alpha_transparency,
+                    figure_color= figure_color,
+                    data_restriction= data_restriction,
+                    overloaded_figure = (fig, ax)
+                )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
     if include_axis_visualization:

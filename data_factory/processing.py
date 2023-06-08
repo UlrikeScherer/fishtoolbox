@@ -40,7 +40,7 @@ def transform_to_traces_high_dim(data,frame_idx, filter_index, area_tuple):
     # check if X is finite 
     if not np.all(np.isfinite(X)):
         raise ValueError("Not all values in X are finite, something went wrong in the feature computation", X)
-    return X[~f3], new_area
+    return X, new_area
 
 def compute_projections(fish_key, day, area_tuple, excluded_days=dict()):
     cam, pos = fish_key.split("_")

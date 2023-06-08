@@ -36,6 +36,10 @@ def transform_to_traces_high_dim(data,frame_idx, filter_index, area_tuple):
     wall = px2cm(distance_to_wall_chunk(data, new_area))
     f3 = update_filter_three_points(steps, filter_index)
     X = np.array((frame_idx[1:-1],steps[:-1], t_a, wall[1:-1], data[1:-1,0], data[1:-1,1])).T 
+    X = X[~f3]
+    # check if X is finite 
+    if not np.all(np.isfinite(X)):
+        raise ValueError("Not all values in X are finite, something went wrong in the feature computation", X)
     return X[~f3], new_area
 
 def compute_projections(fish_key, day, area_tuple, excluded_days=dict()):

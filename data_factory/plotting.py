@@ -440,6 +440,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         fish_key,
         day,
         mode = 'clusters', 
+        trajectory_color = 'red',
         data_restriction_limit= None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
@@ -490,6 +491,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         day = day,
         data_restriction_limit=data_restriction_limit,
         axis_limit_tuple = axis_limit_tuple,
+        figure_color= trajectory_color,
         overloaded_figure = (fig,ax),
         include_axis_visualization = False, 
         plot_figure = False

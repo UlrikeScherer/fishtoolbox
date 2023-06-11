@@ -31,7 +31,7 @@ def factory_main():
     print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")
-    mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
+    #mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
     print("Fit data / find embeddings")
     fit_data(parameters)
     print("Find Watershed...")
@@ -53,7 +53,9 @@ def fit_data(parameters):
 
     # initialize the kmeans model on training data for different values of k
     for k in parameters.kmeans_list:
-        mmpy.set_kmeans_model(k, tfolder, trainingSetData)
+        if not os.path.exists(tfolder + '/kmeans_%i.pkl'%k):
+            print('Initializing kmeans model with %i clusters'%k)
+            mmpy.set_kmeans_model(k, tfolder, trainingSetData)
     # Loading training embedding
     with h5py.File(tfolder+ 'training_embedding.mat', 'r') as hfile:
         trainingEmbedding= hfile['trainingEmbedding'][:].T
@@ -68,7 +70,10 @@ def fit_data(parameters):
         print('Finding Embeddings')
         t1 = time.time()
         print('%i/%i : %s'%(i+1,len(projectionFiles), projectionFiles[i]))
-
+        # Skip if embeddings already found.
+        if os.path.exists(projectionFiles[i][:-4] +'_%s.mat'%(zValstr)):
+            print('Already done. Skipping.\n')
+            continue
         # load projections for a dataset
         projections = hdf5storage.loadmat(projectionFiles[i])['projections']
         print(projections.shape, trainingSetData.shape)
@@ -78,10 +83,6 @@ def fit_data(parameters):
             hdf5storage.write(data = {"clusters":value, "k":int(key.split("_")[1])}, path = '/', truncate_existing = True,
                         filename = projectionFiles[i][:-4]+'_%s.mat'% (key), store_python_metadata = False, matlab_compatible = True)
         #del clusters_dict      
-        # Skip if embeddings already found.
-        if os.path.exists(projectionFiles[i][:-4] +'_%s.mat'%(zValstr)):
-            print('Already done. Skipping.\n')
-            continue
 
         # Find Embeddings
         zValues, outputStatistics = mmpy.findEmbeddings(projections,trainingSetData,trainingEmbedding,parameters)

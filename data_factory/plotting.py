@@ -476,6 +476,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
         cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure= False
     ) -> plt.figure:
     ''' 
@@ -536,6 +537,12 @@ def plot_umap_trajectories_and_watershed_characteristics(
         ax.axis('on')
     else:
         ax.axis('off')
+    
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax

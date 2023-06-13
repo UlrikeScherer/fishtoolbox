@@ -8,7 +8,7 @@ if not os.path.exists(f"{config_path}/config.env"):
 
 load_envbash(f"{config_path}/config.env")
 N_FISHES = 24
-BATCH_SIZE = 1000
+BATCH_SIZE = 10000 
 BACK = "back"
 sep = ";"
 VIS_DIR = "vis"

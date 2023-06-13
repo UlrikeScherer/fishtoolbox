@@ -208,10 +208,7 @@ def rename_clusters(clusters, rating_feature):
         renamed_clusters[clusters == j] = i
     return renamed_clusters
 
-
-if __name__ == "__main__":
-    print("Start computation for: ", BLOCK)
-    parameters = set_parameters()
+def compute_all_projections_filtered(parameters):
     fish_keys = get_camera_pos_keys() # get all fish keys
     for key in block1_remove:
         if BLOCK in key:
@@ -220,3 +217,8 @@ if __name__ == "__main__":
                 fish_keys.remove(fk)
     excluded=get_excluded_days(list(map(lambda f: f"{BLOCK}_{f}", fish_keys)))
     compute_all_projections(parameters.projectPath,fish_keys,excluded_days=excluded,recompute=True)
+
+if __name__ == "__main__":
+    print("Start computation for: ", BLOCK)
+    parameters = set_parameters()
+    compute_all_projections_filtered(parameters)

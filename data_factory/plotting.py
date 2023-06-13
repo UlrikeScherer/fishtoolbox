@@ -141,6 +141,7 @@ def get_umap_density_figure(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
+        cmap = 'default',
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -150,11 +151,14 @@ def get_umap_density_figure(
         fig, ax = overloaded_figure
     else: 
         fig, ax = plt.subplots()
+
+    if cmap == 'default':
+        cmap = mmpy.gencmap()
     ax.imshow(
         X= umap_embedding,
         extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
-        cmap=mmpy.gencmap()
+        cmap=cmap
     )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
@@ -221,6 +225,7 @@ def get_watershed_clusters_figure(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization= False, 
+        cmap = 'default',
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -231,12 +236,18 @@ def get_watershed_clusters_figure(
         fig, ax = overloaded_figure
     else: 
         fig, ax = plt.subplots()
-        
+
+    # use np.nan for 0-values for clear distinction between embedding points and background
+    cluster_embeddings = cluster_embeddings.astype(np.float64)
+    cluster_embeddings[cluster_embeddings == 0] = np.nan
+
+    if cmap == 'default':
+        cmap = mmpy.gencmap()
     ax.imshow(
         X=cluster_embeddings, 
         extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
-        cmap=mmpy.gencmap()
+        cmap=cmap
     )
 
     for i in np.unique(cluster_embeddings)[1:]:
@@ -258,8 +269,9 @@ def get_watershed_clusters_figure(
             or x_text_location > axis_limit_tuple[0][1]
             or y_text_location < axis_limit_tuple[1][0]
             or y_text_location > axis_limit_tuple[1][1]
-        ):
-            ax.text(x_text_location, y_text_location, str(i), fontsize=fontsize, fontweight='bold')
+            or np.isnan(i)
+        ):  
+            ax.text(x_text_location, y_text_location, str(i.astype(int)), fontsize=fontsize, fontweight='bold')
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
     if include_axis_visualization:
@@ -434,6 +446,11 @@ def umap_scatter_figure_for_all(
     return fig, ax
 
 
+# TODO: color adjustments for watershed-boundaries figure: 
+#       * darker colors (e.g. color maps)
+#       * transparency of the figure
+#       * other contrast-increasing aspects of the trajectory vs. watershed boundaries
+
 def plot_umap_trajectories_and_watershed_characteristics(
         parameters,
         wshed_path,
@@ -444,6 +461,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         data_restriction_limit= None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
+        cmap = 'default',
         plot_figure= False
     ) -> plt.figure:
     ''' 
@@ -463,6 +481,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
             axis_limit_tuple = axis_limit_tuple,
             overloaded_figure = (fig, ax), 
             include_axis_visualization = False, 
+            cmap= cmap,
             plot_figure = False
         )
     else:
@@ -472,6 +491,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
             axis_limit_tuple = axis_limit_tuple,
             overloaded_figure = (fig,ax),
             include_axis_visualization = False,
+            cmap=cmap,
             plot_figure = False
         )
 

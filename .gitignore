@@ -6,9 +6,8 @@ notebooks/*.ipynb
 # dont ignore the specified notebooks 
 !*/coefficient_of_variation.ipynb
 !*/analysis_watershed.ipynb
+!*/analysis_umap_wshed_plots.ipynb
 
 .vscode/*
 .venv
 config.env
-
-

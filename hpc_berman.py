@@ -55,7 +55,7 @@ def fit_data(parameters):
     for k in parameters.kmeans_list:
         if not os.path.exists(tfolder + '/kmeans_%i.pkl'%k):
             print('Initializing kmeans model with %i clusters'%k)
-            mmpy.set_kmeans_model(k, tfolder, trainingSetData)
+            mmpy.set_kmeans_model(k, tfolder, trainingSetData, parameters.useGPU)
     # Loading training embedding
     with h5py.File(tfolder+ 'training_embedding.mat', 'r') as hfile:
         trainingEmbedding= hfile['trainingEmbedding'][:].T

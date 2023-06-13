@@ -288,7 +288,8 @@ def get_umap_trajectories_figure(
         fish_key, 
         day, 
         figure_color= 'red',
-        data_restriction_limit = None, 
+        data_restriction = None,
+        data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
@@ -307,8 +308,20 @@ def get_umap_trajectories_figure(
         fk= fish_key,
         day= day
     )['embeddings']
-    if isinstance(data_restriction_limit, int):
-        zVals = zVals[0:data_restriction_limit]
+    if data_restriction is not None:
+        if 'limit' in data_restriction:
+            zVals = zVals[0:data_restriction['limit']]
+        elif 'nth_value' in data_restriction:
+            zVals = zVals[0::data_restriction['nth_value']]
+        elif 'interval' in data_restriction:
+            zVals = zVals[data_restriction['interval'][0]:data_restriction['interval'][1]]
+        if data_restriction_additional:
+            if 'limit' in data_restriction_additional:
+                zVals = zVals[0:data_restriction_additional['limit']]
+            elif 'nth_value' in data_restriction_additional:
+                zVals = zVals[0::data_restriction_additional['nth_value']]
+            elif 'interval' in data_restriction_additional:
+                zVals = zVals[data_restriction_additional['interval'][0]:data_restriction_additional['interval'][1]]
     
     if overloaded_figure:
         fig, ax = overloaded_figure
@@ -458,7 +471,8 @@ def plot_umap_trajectories_and_watershed_characteristics(
         day,
         mode = 'clusters', 
         trajectory_color = 'red',
-        data_restriction_limit= None,
+        data_restriction= None,
+        data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
         cmap = 'default',
@@ -509,7 +523,8 @@ def plot_umap_trajectories_and_watershed_characteristics(
         parameters = parameters,
         fish_key = fish_key,
         day = day,
-        data_restriction_limit=data_restriction_limit,
+        data_restriction= data_restriction,
+        data_restriction_additional= data_restriction_additional,
         axis_limit_tuple = axis_limit_tuple,
         figure_color= trajectory_color,
         overloaded_figure = (fig,ax),

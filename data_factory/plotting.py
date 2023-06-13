@@ -139,9 +139,10 @@ def get_umap_density_figure(
         umap_embedding, 
         extent_factor, 
         axis_limit_tuple = ([-100, 100], [-100, 100]),
-        overloaded_figure=None, 
+        overloaded_figure = None, 
         include_axis_visualization = False, 
         cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -166,6 +167,11 @@ def get_umap_density_figure(
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig,ax
@@ -226,6 +232,7 @@ def get_watershed_clusters_figure(
         overloaded_figure=None, 
         include_axis_visualization= False, 
         cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -278,6 +285,11 @@ def get_watershed_clusters_figure(
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax
@@ -409,6 +421,7 @@ def umap_scatter_figure_for_all(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -454,15 +467,15 @@ def umap_scatter_figure_for_all(
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax
 
-
-# TODO: color adjustments for watershed-boundaries figure: 
-#       * darker colors (e.g. color maps)
-#       * transparency of the figure
-#       * other contrast-increasing aspects of the trajectory vs. watershed boundaries
 
 def plot_umap_trajectories_and_watershed_characteristics(
         parameters,
@@ -533,6 +546,55 @@ def plot_umap_trajectories_and_watershed_characteristics(
         plot_figure = False
     )
 
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+
+def plot_umap_density_and_watershed_boundaries(
+    wshed_path,
+    axis_limit_tuple = ([-100, 100], [-100, 100]),
+    include_axis_visualization= False, 
+    cmap = 'default',
+    save_pdf_path: os.path = None,
+    plot_figure= False
+)-> plt.figure:
+    '''
+    plotting of the umap density and the watershed boundaries in one figure
+    this figure can be saved as a pdf and/or plotted
+    '''
+    wshed_dict = load_watershed_file(wshed_path)
+    
+    fig, ax = plt.subplots()
+    get_umap_density_figure(
+        umap_embedding = wshed_dict['density'],
+        extent_factor = wshed_dict['xx'][0][-1],
+        axis_limit_tuple = axis_limit_tuple,
+        overloaded_figure = (fig,ax),
+        include_axis_visualization = False,
+        cmap=cmap,
+        plot_figure = False
+    )
+
+    get_watershed_boundaries_figure(
+        boundaries_embedding= wshed_dict['wbounds'],
+        extent_factor= wshed_dict['xx'][0][-1],
+        original_figure_width= wshed_dict['density'].shape[0],
+        axis_limit_tuple = axis_limit_tuple,
+        overloaded_figure= (fig,ax),
+        include_axis_visualization = False,
+        plot_figure = False
+    )
     if include_axis_visualization:
         ax.axis('on')
     else:

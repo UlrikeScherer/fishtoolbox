@@ -28,8 +28,8 @@ def main_factory(parameters, n_clusters = [5,10]):
                     filename=parameters.projectPath+"/overall_kmeans_%.pdf"%n_c, cluster_remap=None)
 
 def for_all_cluster_entrophy(parameters, fish_ids):
-    get_clusters_func = lambda fk,d: load_clusters_concat(parameters, fk, d)
-    for k in parameters.kmeans_list:
+    get_clusters_func = lambda fk,d: load_clusters_concat(parameters, fk, d )
+    for k in [10,20]:
         parameters.kmeans=k
         wshedfile = hdf5storage.loadmat('%s/%s/zVals_wShed_groups_%s.mat'%(parameters.projectPath, parameters.method,parameters.kmeans))
         get_clusters_func_wshed = lambda fk, d: get_regions_for_fish_key(wshedfile,fk,d)

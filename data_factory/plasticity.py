@@ -34,6 +34,9 @@ def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel
     else:
         axis = ax
 
+    if columns is None:
+        columns = df.columns
+
     colors_map = plt.cm.get_cmap(lut=len(columns))
     df = df[columns]
     leg_h = []
@@ -60,12 +63,12 @@ def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel
     axis.set_title(title)
     axis.set_ylabel(ylabel)
     axis.set_xlabel(xlabel)
-
+    remove_spines(axis)
     if ax is not None:
         return None
     fig.tight_layout()
     if filename is not None:
-        fig.savefig(filename+".png")
+        fig.savefig(filename)
     return fig
 
 def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, name="cluster_entropy_for_days", by_the_hour=False, fit_degree=1, forall=True):
@@ -80,9 +83,8 @@ def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, n
             if clusters is not None:
                 if by_the_hour:
                     time_df = load_trajectory_data_concat(parameters, fk, d)["df_time_index"]
-                    time_split, cluster_hourly = split_into_batches(time_df, clusters, batch_size=5*60*60,flt=False)
+                    time_split, cluster_hourly = split_into_batches(time_df, clusters, batch_size=5*60*60,flt=True)
                     h_of_split = [int(HOURS_PER_DAY*(i)+((t[0]-time_df[0])//(5*(60**2)))) for t in time_split]
-                    print(time_split, cluster_hourly, h_of_split)
                     entro[h_of_split,j] = [entropy_m(compute_cluster_distribution(c, n_clusters)) for c in cluster_hourly]
                 else:
                     dist = compute_cluster_distribution(clusters,n_clusters)

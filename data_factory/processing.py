@@ -5,14 +5,14 @@ import multiprocessing as mp
 
 from .excluded_days import get_excluded_days, block1_remove
 from .utils import get_days, set_parameters
-from fishproviz.methods import turning_directions, distance_to_wall_chunk, calc_steps
+from fishproviz.methods import distance_to_wall_chunk
 from fishproviz.utils.tank_area_config import get_area_functions
 from fishproviz.utils.error_filter import all_error_filters
 from fishproviz.utils.transformation import px2cm, normalize_origin_of_compartment
-from fishproviz.metrics.metrics import update_filter_three_points
+from fishproviz.metrics.metrics import update_filter_three_points, compute_turning_angles, compute_step_lengths
 from config import BLOCK, BACK, BATCH_SIZE, FRAMES_PER_SECOND, HOURS_PER_DAY
 import numpy as np
-import hdf5storage
+import hdf5storage 
 from fishproviz.utils import csv_of_the_day
 from fishproviz.utils.utile import get_camera_pos_keys, get_days_in_order, start_time_of_day_to_seconds
 from config import BLOCK
@@ -30,12 +30,11 @@ def transform_to_traces_high_dim(data,frame_idx, filter_index, area_tuple):
     """
     fk, area = area_tuple
     data, new_area = normalize_origin_of_compartment(data, area, BACK in fk)
-    steps = px2cm(calc_steps(data))
-    #xy_steps = px2cm(data[:-1]-data[1:])
-    t_a = turning_directions(data)
+    steps = px2cm(compute_step_lengths(data))
+    t_a = compute_turning_angles(data)
     wall = px2cm(distance_to_wall_chunk(data, new_area))
     f3 = update_filter_three_points(steps, filter_index)
-    X = np.array((frame_idx[1:-1],steps[:-1], t_a, wall[1:-1], data[1:-1,0], data[1:-1,1])).T 
+    X = np.array((frame_idx[1:-1],steps[1:], t_a, wall[1:-1], data[1:-1,0], data[1:-1,1])).T 
     X = X[~f3]
     # check if X is finite 
     if not np.all(np.isfinite(X)):

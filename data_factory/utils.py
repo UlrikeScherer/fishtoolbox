@@ -55,6 +55,8 @@ def get_cluster_sequences(clusters, cluster_ids=range(1,6), sw=6*60*5, th=0.6):
 
 def split_into_batches(time, data, batch_size=60*60*5, flt=True):
     """
+    @param time: time vector in data frames 
+
     Split data into batches of batch_size dataframes (5 df per second)
     flt: if True, filter out batches with less than 1/4 of the batch_size
     """
@@ -63,9 +65,8 @@ def split_into_batches(time, data, batch_size=60*60*5, flt=True):
     hours_end = [bisect.bisect_left(t, h) for h in range(step,int(t[-1]), step)]
     batches = np.split(data, hours_end)
     times = np.split(time, hours_end)
-    if flt:
-        batches = list(filter(lambda v: len(v)>step/4, batches))
-        times = list(filter(lambda v: len(v)>step/4, times))
+    batches = list(filter(lambda v: len(v)>0, batches))
+    times = list(filter(lambda v: len(v)>0, times))
     return times, batches
 
 def get_individuals_keys(parameters, block=""):

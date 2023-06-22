@@ -12,4 +12,6 @@ notebooks/*.ipynb
 .venv
 config.env
 
+.DS_Store
+notebooks/*.pdf*
 

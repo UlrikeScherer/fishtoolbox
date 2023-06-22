@@ -5,7 +5,10 @@ Contains a set of modules to analyze and visualize data from block1 and block2 o
 ### Dependencies
 Install the following packages:
 - [fishproviz](https://github.com/lukastaerk/Fish-Tracking-Visualization)
+
 - [motionmapperpy fork](https://github.com/lukastaerk/motionmapperpy)
+
+#### Data Flow
 
 ### Using the HPC cluster
 1. Start on the GPU

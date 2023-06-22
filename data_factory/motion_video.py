@@ -1,12 +1,14 @@
 import numpy as np
 # this packages helps load and save .mat files older than v7
-import hdf5storage, h5py, os
+import hdf5storage, h5py, os, tqdm 
 from time import gmtime, strftime
 from matplotlib import pyplot as plt
+from scipy.stats import entropy as entropy_m
 from matplotlib.animation import FuncAnimation
 # moviepy helps open the video files in Python
 from moviepy.editor import VideoClip, VideoFileClip
 from moviepy.video.io.bindings import mplfig_to_npimage
+from data_factory.plasticity import compute_cluster_distribution
 from data_factory.plotting import get_umap_density_figure, get_watershed_boundaries_figure
 import motionmapperpy as mmpy
 
@@ -22,7 +24,7 @@ def get_color_map(n):
     cmap = mmpy.motionmapper.gencmap()
     return lambda cid: cmap(cid*64//n)
 
-def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=False, filename="", score=""):
+def motion_video(wshedfile, parameters,fish_key, day, start=0, duration_seconds=20, save=False, filename="", score="", axis_limit_tuple=None):
     try:
         tqdm._instances.clear()
     except:
@@ -34,12 +36,14 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=Fa
     positions = sum_data['positions']
     clusters = sum_data["clusters"]
     area_box = sum_data['area']
+    time_df = sum_data['df_time_index']
 
     fig, (ax1,ax2) = plt.subplots(1, 2, figsize=(10,5))
    
     get_umap_density_figure(
         umap_embedding= wshedfile['density'],
         extent_factor= wshedfile['xx'][0][-1],
+        axis_limit_tuple= axis_limit_tuple,
         overloaded_figure= (fig,ax1),
         include_axis_visualization= False,
         plot_figure= False
@@ -47,6 +51,7 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=Fa
     get_watershed_boundaries_figure(
         boundaries_embedding= wshedfile['wbounds'],
         extent_factor= wshedfile['xx'][0][-1],
+        axis_limit_tuple= axis_limit_tuple,
         original_figure_width= wshedfile['density'].shape[0],
         overloaded_figure= (fig,ax1),
         include_axis_visualization= False,
@@ -58,7 +63,7 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=Fa
     ax1.set_title(' ')
 
     # tight layout 
-    fig.tight_layout()
+    fig.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
 
     #ax1.set_xlim
     lineZ = ax1.plot([], [], "-", color="red", alpha=0.5, linewidth=2) 
@@ -67,19 +72,21 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, end=None, save=Fa
     ax2.plot(*area_box.T, color="black")
     (line,) = ax2.plot([],[], "-o", markersize=3, color="blue")
     tstart = start 
+    offset_df = 100
+    entro = entropy_m(compute_cluster_distribution(clusters[start-offset_df:start+offset_df+duration_seconds*5], parameters.kmeans))
     
     cmap = get_color_map(clusters.max())
     def animate(t):
         t = int(t*20)+tstart
-        line.set_data(*positions[t-100:t+100].T)
+        line.set_data(*positions[t-offset_df:t+offset_df].T)
         ax2.axis('off')
-        ax1.set_title('%s %s H:M:S: %s     ratio: %.3f'%(fish_key, get_date_string(day), strftime("%H:%M:%S",gmtime(t//5)), score))
-        lineZ[0].set_data(*zValues[t-100:t+100].T) 
+        ax1.set_title('%s time %s  entropy: %.02f'%(get_date_string(day), strftime("%H:%M:%S",gmtime(time_df[t]//5)), entro))  
+        lineZ[0].set_data(*zValues[t-offset_df:t+offset_df].T) 
         sc.set_offsets(zValues[t])
         sc.set_color(cmap(clusters[t]))
         return mplfig_to_npimage(fig) #im, ax
 
-    anim = VideoClip(animate, duration=20) # will throw memory error for more than 100.
+    anim = VideoClip(animate, duration=duration_seconds) # will throw memory error for more than 100.
     plt.close()
     if save:
         dir_v = f'{parameters.projectPath}/{VIDEOS_DIR}/{parameters.kmeans}_clusters'

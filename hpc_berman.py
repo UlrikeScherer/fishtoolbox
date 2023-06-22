@@ -10,7 +10,7 @@ import os
 
 def factory_main():
     parameters = set_parameters()
-    parameters.useGPU=0
+    parameters.useGPU=-1 #0 for GPU, -1 for CPU
     parameters.training_numPoints = 5000    #% Number of points in mini-trainings.
     parameters.trainingSetSize = 72000  #% Total number of training set points to find. 
                                  #% Increase or decrease based on
@@ -24,14 +24,14 @@ def factory_main():
     
     mmpy.createProjectDirectory(parameters.projectPath)
     fish_keys = get_camera_pos_keys()
-    
+    # preprocessing should we be done with python -m preprocessing. 
     #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
     indiviuals_ids = get_individuals_keys(parameters=parameters)
     print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")
-    #mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
+    mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
     print("Fit data / find embeddings")
     fit_data(parameters)
     print("Find Watershed...")

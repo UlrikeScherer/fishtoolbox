@@ -25,7 +25,7 @@ def factory_main():
     mmpy.createProjectDirectory(parameters.projectPath)
     fish_keys = get_camera_pos_keys()
     # preprocessing should we be done with python -m preprocessing. 
-    #compute_all_projections(parameters.projectPath,fish_keys,recompute=False)
+    #compute_all_projections_filtered(parameters.projectPath,fish_keys,recompute=False)
     #normalize 
     indiviuals_ids = get_individuals_keys(parameters=parameters)
     print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))

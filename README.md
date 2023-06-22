@@ -4,6 +4,12 @@ Contains a set of modules to analyze and visualize data from block1 and block2 o
 
 ### Dependencies
 Install the following packages:
+- [graph-tool](https://graph-tool.skewed.de/static/doc/index.html)
+    * Installation on hpc via conda base environment
+        ```bash
+        conda install -c conda-forge graph-tool
+        ```
+    or via [Apptainer/Singularity](https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions#installing-using-apptainersingularity-useful-for-hpc-systems)
 - [fishproviz](https://github.com/lukastaerk/Fish-Tracking-Visualization)
 
 - [motionmapperpy fork](https://github.com/lukastaerk/motionmapperpy)

@@ -139,8 +139,10 @@ def get_umap_density_figure(
         umap_embedding, 
         extent_factor, 
         axis_limit_tuple = ([-100, 100], [-100, 100]),
-        overloaded_figure=None, 
+        overloaded_figure = None, 
         include_axis_visualization = False, 
+        cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -150,11 +152,14 @@ def get_umap_density_figure(
         fig, ax = overloaded_figure
     else: 
         fig, ax = plt.subplots()
+
+    if cmap == 'default':
+        cmap = mmpy.gencmap()
     ax.imshow(
         X= umap_embedding,
         extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
-        cmap=mmpy.gencmap()
+        cmap=cmap
     )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
@@ -162,6 +167,11 @@ def get_umap_density_figure(
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig,ax
@@ -221,6 +231,8 @@ def get_watershed_clusters_figure(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization= False, 
+        cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -231,12 +243,18 @@ def get_watershed_clusters_figure(
         fig, ax = overloaded_figure
     else: 
         fig, ax = plt.subplots()
-        
+
+    # use np.nan for 0-values for clear distinction between embedding points and background
+    cluster_embeddings = cluster_embeddings.astype(np.float64)
+    cluster_embeddings[cluster_embeddings == 0] = np.nan
+
+    if cmap == 'default':
+        cmap = mmpy.gencmap()
     ax.imshow(
         X=cluster_embeddings, 
         extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
-        cmap=mmpy.gencmap()
+        cmap=cmap
     )
 
     for i in np.unique(cluster_embeddings)[1:]:
@@ -258,14 +276,20 @@ def get_watershed_clusters_figure(
             or x_text_location > axis_limit_tuple[0][1]
             or y_text_location < axis_limit_tuple[1][0]
             or y_text_location > axis_limit_tuple[1][1]
-        ):
-            ax.text(x_text_location, y_text_location, str(i), fontsize=fontsize, fontweight='bold')
+            or np.isnan(i)
+        ):  
+            ax.text(x_text_location, y_text_location, str(i.astype(int)), fontsize=fontsize, fontweight='bold')
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
     if include_axis_visualization:
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax
@@ -276,7 +300,8 @@ def get_umap_trajectories_figure(
         fish_key, 
         day, 
         figure_color= 'red',
-        data_restriction_limit = None, 
+        data_restriction = None,
+        data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
@@ -295,8 +320,20 @@ def get_umap_trajectories_figure(
         fk= fish_key,
         day= day
     )['embeddings']
-    if isinstance(data_restriction_limit, int):
-        zVals = zVals[0:data_restriction_limit]
+    if data_restriction is not None:
+        if 'limit' in data_restriction:
+            zVals = zVals[0:data_restriction['limit']]
+        elif 'nth_value' in data_restriction:
+            zVals = zVals[0::data_restriction['nth_value']]
+        elif 'interval' in data_restriction:
+            zVals = zVals[data_restriction['interval'][0]:data_restriction['interval'][1]]
+        if data_restriction_additional:
+            if 'limit' in data_restriction_additional:
+                zVals = zVals[0:data_restriction_additional['limit']]
+            elif 'nth_value' in data_restriction_additional:
+                zVals = zVals[0::data_restriction_additional['nth_value']]
+            elif 'interval' in data_restriction_additional:
+                zVals = zVals[data_restriction_additional['interval'][0]:data_restriction_additional['interval'][1]]
     
     if overloaded_figure:
         fig, ax = overloaded_figure
@@ -384,6 +421,7 @@ def umap_scatter_figure_for_all(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
+        save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
     '''
@@ -429,6 +467,11 @@ def umap_scatter_figure_for_all(
         ax.axis('on')
     else:
         ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax
@@ -441,9 +484,12 @@ def plot_umap_trajectories_and_watershed_characteristics(
         day,
         mode = 'clusters', 
         trajectory_color = 'red',
-        data_restriction_limit= None,
+        data_restriction= None,
+        data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
+        cmap = 'default',
+        save_pdf_path: os.path = None,
         plot_figure= False
     ) -> plt.figure:
     ''' 
@@ -463,6 +509,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
             axis_limit_tuple = axis_limit_tuple,
             overloaded_figure = (fig, ax), 
             include_axis_visualization = False, 
+            cmap= cmap,
             plot_figure = False
         )
     else:
@@ -472,6 +519,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
             axis_limit_tuple = axis_limit_tuple,
             overloaded_figure = (fig,ax),
             include_axis_visualization = False,
+            cmap=cmap,
             plot_figure = False
         )
 
@@ -489,7 +537,8 @@ def plot_umap_trajectories_and_watershed_characteristics(
         parameters = parameters,
         fish_key = fish_key,
         day = day,
-        data_restriction_limit=data_restriction_limit,
+        data_restriction= data_restriction,
+        data_restriction_additional= data_restriction_additional,
         axis_limit_tuple = axis_limit_tuple,
         figure_color= trajectory_color,
         overloaded_figure = (fig,ax),
@@ -501,6 +550,61 @@ def plot_umap_trajectories_and_watershed_characteristics(
         ax.axis('on')
     else:
         ax.axis('off')
+    
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+
+def plot_umap_density_and_watershed_boundaries(
+    wshed_path,
+    axis_limit_tuple = ([-100, 100], [-100, 100]),
+    include_axis_visualization= False, 
+    cmap = 'default',
+    save_pdf_path: os.path = None,
+    plot_figure= False
+)-> plt.figure:
+    '''
+    plotting of the umap density and the watershed boundaries in one figure
+    this figure can be saved as a pdf and/or plotted
+    '''
+    wshed_dict = load_watershed_file(wshed_path)
+    
+    fig, ax = plt.subplots()
+    get_umap_density_figure(
+        umap_embedding = wshed_dict['density'],
+        extent_factor = wshed_dict['xx'][0][-1],
+        axis_limit_tuple = axis_limit_tuple,
+        overloaded_figure = (fig,ax),
+        include_axis_visualization = False,
+        cmap=cmap,
+        plot_figure = False
+    )
+
+    get_watershed_boundaries_figure(
+        boundaries_embedding= wshed_dict['wbounds'],
+        extent_factor= wshed_dict['xx'][0][-1],
+        original_figure_width= wshed_dict['density'].shape[0],
+        axis_limit_tuple = axis_limit_tuple,
+        overloaded_figure= (fig,ax),
+        include_axis_visualization = False,
+        plot_figure = False
+    )
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
     if plot_figure:
         fig.show()
     return fig, ax

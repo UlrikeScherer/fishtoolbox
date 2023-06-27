@@ -1,0 +1,32 @@
+
+digraph G {
+    node [shape=box, style=filled, color="lightblue" fontname=Arial]
+    edge [fontname=Helvetica, fontsize=10, labelfontcolor=black]
+    Block1 [label="Block1\n[xpx,ypx]", color="#AFE1AF"]
+    Block2 [label="Block2\n[xpx,ypx]", color="#AFE1AF"]
+    Feature [label="Feature Space\n[step,angle,wall distance]\n positions: [xpx,ypx]\n time:[df]"]
+    WaveletSpace [label="Wavelet Space\n(75 Dimensions)" color="#00FFFF"]
+    UMAP [label="UMAP [x,y]", color="#E4D00A"]
+    Watershed [label="Watershed Regions" color="#FF5733"]
+    Kmeans [label="Kmeans Clustering" color="#FF5733"]
+    CV [label="Coefficient of Variation" color="#FFC300"]
+    Entropy [label="Entropy" color="#FFC300"]
+    StepLength [label="Mean Step Length\nby Time Interval"]
+    Repeatability [label="Repeatability"]
+    Plasticity [label="Plasticity" color="#FFC300"]
+    Block1 -> Feature [label="preprocessing"]
+    Block2 -> Feature #[label="preprocessing"]
+    Feature -> WaveletSpace [label="Normalization by STD\n and wavelet transformtion"]
+    WaveletSpace -> UMAP
+    UMAP -> Watershed
+    WaveletSpace -> Kmeans
+    Feature -> CV [label="from means of 1 to 50 DF\n by hour or day"]
+    Watershed -> Entropy [label="by hour or day"]
+    Kmeans -> Entropy
+    Block1 -> StepLength
+    Block2 -> StepLength 
+    Feature -> StepLength
+    StepLength -> Repeatability
+    Plasticity -> Entropy [arrowhead = empty]
+    Plasticity -> CV [arrowhead = empty]
+}

@@ -15,6 +15,7 @@ Install the following packages:
 - [motionmapperpy fork](https://github.com/lukastaerk/motionmapperpy)
 
 #### Data Flow
+![Dataflow](docs/dataflow.pdf)
 
 ### Using the HPC cluster
 1. Start on the GPU
@@ -43,8 +44,23 @@ Install the following packages:
 - `load_clusters_concat` load cluster labels for individuals and day 
     paramerter.kmeans = 5 to specify the clustering that you want to load. 
 
-# Poltting 
+## Plasticity  
+There are three ways in this module to compute plasticity. 
+- `compute_cluster_entropy` computes the cluster entropy for each individual and day. Using the watershed regions or kmeans clusters, by providing the function to load the corresponding clusters.
+- `compute_coefficient_of_variation` computes the coefficient of variation for each individual and day.
+
+## Repeatability 
+From means of features (step, angle, wall distance), e.g. batches of 60 data frames. Produce a long table, recording block number, id. 
+
+
+
+
+
+# Plotting 
 ## Caterpillar Plots
 - ethnogram_of_clusters
+
+# TODOs:
+- check the new area files, see if there are significant updates for any of them, what is the difference, do we need an refined get_area_function(fishkey,day) 
 
 

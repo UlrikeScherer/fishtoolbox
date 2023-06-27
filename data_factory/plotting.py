@@ -12,7 +12,28 @@ from .processing import get_regions_for_fish_key, load_zVals_concat
 from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
-        
+def plot_feature_distribution(input_data, name="distributions_step_angle_dist", n_dfs=[1], names = ["step length", "turning angle", "distance to the wall"]):
+    n_rows, n_cols = len(n_dfs),len(names)
+    fig = plt.figure(figsize=(n_cols*4,n_rows*4))
+    axes = fig.subplots(n_rows,n_cols, sharex="col", squeeze=False)
+    for axes_i, n_df in zip(axes,n_dfs):
+        for i, ax in enumerate(axes_i):
+            if i==0: 
+                ax.set_ylabel("counts")#'%0.1f sec'%(n_df/5))
+            # Draw the plot
+            data_in = input_data[:,i]
+            new_len = data_in.size//n_df
+            data_in = data_in[:n_df*new_len].reshape((new_len, n_df)).mean(axis=1)
+            ax.hist(data_in, bins = 50,density=False,stacked=False, range=(0,8) if i==0 else None,
+                     color = '#6161b0', edgecolor='#6161b0', log=True)
+            # Title and labels
+            ax.set_title("$\mu=%.02f$, $\sigma=%.02f$"%(data_in.mean(), data_in.std()), size = 12)
+            ax.set_xlabel(names[i], size = 12)
+            remove_spines(ax)
+    #plt.tight_layout()
+    fig.savefig(f"{name}.pdf")
+    return fig
+
 def plot_lines_for_cluster2(
     positions,
     projections,
@@ -88,34 +109,6 @@ def ethnogram_of_clusters(parameters, clusters, start_time=0, end_time=8*(60**2)
         if not os.path.exists(path_e):
             os.mkdir(path_e)
         fig.savefig(f"{path_e}/ethogram_{name_append}{fish_key}_{day}.pdf")
-    return fig
-
-
-def cluster_density_umap(embeddings, clusters, filename=None,n_select=10000):
-    m = np.abs(embeddings).max()
-    cmap= get_color_map(clusters.max())
-    sigma=2.0
-    off_set = 10
-    _, xx, density = mmpy.findPointDensity(embeddings, sigma, 511, [-m-off_set, m+off_set])
-    subset = sample(range(embeddings.shape[0]), min(n_select,embeddings.shape[0]))
-    fig, axes = plt.subplots(1, 2, figsize=(12,6))
-    sc = axes[0].scatter(embeddings[subset][:,0], embeddings[subset][:,1], marker='.', c=cmap(clusters[subset]), s=0.2)
-    axes[0].set_xlim([-m-off_set, m+off_set])
-    axes[0].set_ylim([-m-off_set, m+off_set])
-    
-    for i in np.unique(clusters):
-            fontsize = 8
-            X_i = embeddings[clusters == i]
-            axes[0].text(*np.mean(X_i,axis=0), str(i), fontsize=fontsize, fontweight='bold', backgroundcolor=cmap(i))
-            
-    #fig.colorbar(sc)
-    for ax in axes:
-        ax.axis('off')
-
-    axes[1].imshow(density, cmap=mmpy.gencmap(), extent=(xx[0], xx[-1], xx[0], xx[-1]), origin='lower')
-    if filename:
-        fig.tight_layout()
-        fig.savefig(filename, bbox_inches='tight')
     return fig
 
 def plot_transition_rates(clusters, filename, cluster_remap=[(0,1)]):

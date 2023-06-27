@@ -1,14 +1,17 @@
 
+import glob
 import os
 import pandas as pd
 from scipy.stats import entropy as entropy_m
 from scipy.stats import pearsonr
 import numpy as np
 import matplotlib.pyplot as plt
+import hdf5storage 
 from config import BLOCK1, BLOCK2, HOURS_PER_DAY
 from data_factory.plot_helpers import remove_spines
-from .utils import get_days, split_into_batches
-from .processing import load_trajectory_data_concat
+from .utils import get_days, get_individuals_keys, set_parameters, split_into_batches
+from .processing import get_regions_for_fish_key, load_clusters_concat, load_trajectory_data_concat
+from .plot_helpers import average_fit_plot, sparse_scatter_plot, get_polys
 
 DIR_PLASTCITY = "plasticity"
 def day2date(d):
@@ -23,6 +26,53 @@ def correlation_fit(x,y,deg=1):
     fit_y = np.polyval(abc,time)
     return time, fit_y, corrcof[0], abc
 
+def plasticity_for_file(file, effects=[]):
+    """Plots the plasticity for the given file.
+    effects: list of strings, can be "scatter", "sort"
+    """
+    fig,ax = plt.subplots(figsize=(5,5))
+    xlabel = "hour" if "hour" in file else "day"
+    ylabel = "CV" if "cv/cv" in file else "entropy"
+    clustering_m ="cv"
+    if ylabel == "entropy":
+        clustering_m = "kmeans" if "kmeans" in file else "wshed"
+    num = os.path.basename(file)[-8:-4]
+    df = pd.read_csv(file, index_col=0)
+    df = sort_by_entropy_mean(df)
+    t = df.index
+    title = get_title(file)
+    op_weights = np.array([0.7] *df.columns.size)
+    
+    if "scatter" in effects:
+        sparse_scatter_plot(df[df.columns[[0,-1]]], ax)
+    if "sort" in effects:
+        op_weights = np.array([0.1] *df.columns.size)
+        op_weights[:1]=1
+        op_weights[-1:]=1
+        print(df.columns[:3], df.columns[-3:])
+    polys = get_polys(df)
+    effect = "_".join(effects)
+    average_fit_plot(t, polys, ax=ax, title=title, xlabel=xlabel, ylabel=ylabel, alpha=op_weights)
+    f_name = os.path.dirname(file)+f"/{clustering_m}_{xlabel}_{ylabel}_{title}_{num}{effect}.pdf"
+    remove_spines(ax)
+    plt.legend(frameon=False)
+    fig.savefig(f_name)
+    plt.close()
+    print(f_name)
+    return fig
+
+def sort_by_entropy_mean(df):
+    means = df.mean(numeric_only=True)
+    s_sorted = means.sort_values()
+    return df[s_sorted.keys()]
+
+def get_title(file):
+    names = ["step length", "turning angle", "distance to wall", "entropy"]
+    for n in names:
+        if n in file:
+            return n
+    raise ValueError("file name does not contain any of the following: %s" % names)
+        
 def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel="entropy", filename=None, ax=None, forall=True, fit_degree=1):
     if df is None:
         if filename is None:
@@ -71,7 +121,7 @@ def plot_index_columns(df=None, columns=None, title=None, xlabel="index", ylabel
         fig.savefig(filename)
     return fig
 
-def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, name="cluster_entropy_for_days", by_the_hour=False, fit_degree=1, forall=True):
+def compute_cluster_entropy(parameters, get_clusters_func, fish_keys, n_clusters, name="cluster_entropy_for_days", by_the_hour=False):
     days = get_days(parameters,prefix=fish_keys[0].split("_")[0])
     columns=fish_keys
     index=list(range(1,1+(len(days)*HOURS_PER_DAY if by_the_hour else len(days))))
@@ -99,37 +149,15 @@ def cluster_entropy_plot(parameters, get_clusters_func, fish_keys, n_clusters, n
     
     filename = f"{dir_p}/{name}_{time_str}_%.3d"%n_clusters
     all_vals_df.to_csv(f"{filename}.csv")
-    fig = plot_index_columns(df=all_vals_df, columns=fish_keys, title=f"{name} {time_str} {n_clusters}", filename=filename, ylabel="entropy", xlabel=time_str, fit_degree=fit_degree, forall=forall)
-    return fig, all_vals_df
+    #fig = plot_index_columns(df=all_vals_df, columns=fish_keys, title=f"{name} {time_str} {n_clusters}", filename=filename, ylabel="entropy", xlabel=time_str, fit_degree=fit_degree, forall=forall)
+    return all_vals_df
 
 def compute_cluster_distribution(clusters, n):
     uqs, counts = np.unique(clusters, return_counts=True)
     dist = np.zeros(n)[(uqs-1)]=counts/clusters.shape[0]
     return dist
 
-def plot_feature_distribution(input_data, name="distributions_step_angle_dist", n_dfs=[1], names = ["step length", "turning angle", "distance to the wall"]):
-    n_rows, n_cols = len(n_dfs),len(names)
-    fig = plt.figure(figsize=(n_cols*4,n_rows*4))
-    axes = fig.subplots(n_rows,n_cols, sharex="col", squeeze=False)
-    for axes_i, n_df in zip(axes,n_dfs):
-        for i, ax in enumerate(axes_i):
-            if i==0: 
-                ax.set_ylabel("counts")#'%0.1f sec'%(n_df/5))
-            # Draw the plot
-            data_in = input_data[:,i]
-            new_len = data_in.size//n_df
-            data_in = data_in[:n_df*new_len].reshape((new_len, n_df)).mean(axis=1)
-            ax.hist(data_in, bins = 50,density=False,stacked=False, range=(0,8) if i==0 else None,
-                     color = '#6161b0', edgecolor='#6161b0', log=True)
-            # Title and labels
-            ax.set_title("$\mu=%.02f$, $\sigma=%.02f$"%(data_in.mean(), data_in.std()), size = 12)
-            ax.set_xlabel(names[i], size = 12)
-            remove_spines(ax)
-    #plt.tight_layout()
-    fig.savefig(f"{name}.pdf")
-    return fig
-
-def plasticity_cv_fig(parameters, fish_keys, n_df=50, forall=False, by_the_hour=True, fit_degree=1):
+def compute_coefficient_of_variation(parameters, fish_keys, n_df=50, forall=False, by_the_hour=True, fit_degree=1):
     """
     Compute the coefficient of variation for the step length, turning angle and distance to wall
     for each fish and each day. The coefficient of variation is computed for each hour of the day
@@ -181,3 +209,30 @@ def plasticity_cv_fig(parameters, fish_keys, n_df=50, forall=False, by_the_hour=
     fig.savefig(f"{filename}/cv_{time_str}_ndf_{n_df}.pdf")
     return fig
 
+def for_all_cluster_entrophy(parameters, fish_ids):
+    get_clusters_func = lambda fk,d: load_clusters_concat(parameters, fk, d )
+    for k in [10,20]:
+        parameters.kmeans=k
+        wshedfile = hdf5storage.loadmat('%s/%s/zVals_wShed_groups_%s.mat'%(parameters.projectPath, parameters.method,parameters.kmeans))
+        get_clusters_func_wshed = lambda fk, d: get_regions_for_fish_key(wshedfile,fk,d)
+        for flag in [True, False]:
+            for func, c_type in zip([get_clusters_func_wshed, get_clusters_func],["wshed", "kmeans"]):
+                compute_cluster_entropy(parameters,func,fish_ids,parameters.kmeans,
+                        name=f"cluster_entropy_{c_type}",by_the_hour=flag)
+
+if __name__ == "__main__":
+    parameters = set_parameters()
+    fks = get_individuals_keys(parameters)
+    for_all_cluster_entrophy(parameters, fks)
+    for flag in [True, False]:
+        compute_coefficient_of_variation(parameters, fks, n_df=10,
+                      forall=True, fit_degree=2, by_the_hour=flag)
+    files_daily = sorted(glob.glob(
+        f"/{parameters.projectPath}/plasticity/*/*daily*.csv"
+    ))
+    files_hourly = sorted(glob.glob(
+        f"/{parameters.projectPath}/plasticity/*/*hourly*.csv"
+    ))
+    for f in files_hourly+files_daily:
+        for effect in ["sort", "scatter", ""]:
+            fig = plasticity_for_file(f, effect)

@@ -65,8 +65,8 @@ def repeatability_sampling(table, n_iter, n_sample_list, sametime=False, timeint
 
 # queries the table for by time interval and returns the repeatability for each time interval
 def repeatability_over_time(table, interval=60, func=repeatability_lmm):
-    return np.array([[func(table.query("minutes >= @i & minutes < @j")) for (i,j) in zip(range(0,60*8,interval)
-                                                                                                      ,range(interval,60*8+interval,interval))]])
+    return np.array([[func(table.query("minutes >= @i & minutes < @j")) for (i,j) in zip(range(0,60*8,interval),
+    range(interval,60*8+interval,interval))]])
 
 # script to run the sampling
 if __name__ == "__main__":

@@ -85,6 +85,10 @@ def get_repeatability_dxdy(parameters, data_avg_step):
     return rep_M
 
 def repeatability_dependence_on_averaging(parameters):
+    """
+    first compute average step length files for different numbers of dfs
+    then this function computes the repeatability for each of these files
+    """
     files = glob.glob(parameters.projectPath+"/avg_step_by_*dfs.csv")
     if len(files) == 0:
         raise Exception("No files found")

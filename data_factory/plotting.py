@@ -6,8 +6,9 @@ from random import sample
 from time import gmtime, strftime
 import hdf5storage
 import motionmapperpy as mmpy
-from clustering.clustering import get_results_filepath, boxplot_characteristics_of_cluster
-from config import BLOCK, VIS_DIR
+from clustering.clustering import boxplot_characteristics_of_cluster
+from config import BLOCK
+from data_factory.plot_helpers import remove_spines
 from .processing import get_regions_for_fish_key, load_zVals_concat
 from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph

@@ -1,3 +1,7 @@
+"""
+Plotting functions for correlation matrices, showing how the step length of the fish are correlated over time.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 

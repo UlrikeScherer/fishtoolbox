@@ -49,6 +49,9 @@ There are three ways in this module to compute plasticity.
 - `compute_cluster_entropy` computes the cluster entropy for each individual and day. Using the watershed regions or kmeans clusters, by providing the function to load the corresponding clusters.
 - `compute_coefficient_of_variation` computes the coefficient of variation for each individual and day.
 
+## Table Export 
+Records function to export averaged step length to a csv file and melted them into a long format table for statistical analysis (Repeatability).
+
 ## Repeatability 
 From means of features (step, angle, wall distance), e.g. batches of 60 data frames. Produce a long table, recording block number, id. 
 

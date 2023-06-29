@@ -1,13 +1,10 @@
-import random
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from .processing import load_trajectory_data
-from .utils import get_individuals_keys, get_days, set_parameters, split_into_batches
-from data_factory.plot_helpers import remove_spines
-from config import BLOCK1, BLOCK2
 
-N_HOURS = 8
+from data_factory.table_export import step_length_avg
+from .utils import get_individuals_keys, set_parameters
+from data_factory.plot_helpers import remove_spines
+
 
 def plot_covariance(cov_matrix, label="day",title="Correlation",symmetric_bounds=True,clip_percentile=99.5,**imshow_kwargs):
     fig, ax = plt.subplots(figsize=(8,7))
@@ -27,53 +24,6 @@ def plot_covariance(cov_matrix, label="day",title="Correlation",symmetric_bounds
     ax.set_ylabel(label)
     fig.colorbar(cax)
     return fig
-
-def step_length_avg_by_day(parameters, fish_keys):
-    main_df = pd.DataFrame({BLOCK1:get_days(parameters,prefix=BLOCK1), BLOCK2:get_days(parameters, prefix=BLOCK2)})
-    for fk in fish_keys:
-        block = BLOCK1 if BLOCK1 in fk else BLOCK2
-        data = load_trajectory_data(parameters, fk)
-        step_df = pd.DataFrame({
-                fk:[data[i]["projections"][:,0].mean() for i in range(len(data))], 
-                block:[data[i]["day"][0][0] for i in range(len(data))]
-                               }).dropna()
-        main_df = main_df.merge(step_df,on=[block,"DATAFRAMES"], how="left")
-    return main_df
-
-def step_length_avg(parameters, fish_keys, batch_dfs, max_rows_per_day=300):
-    if batch_dfs:
-        days_b1, days_b2 = get_days(parameters,prefix=BLOCK1), get_days(parameters,prefix=BLOCK2)
-        DFsByDay = N_HOURS*60*60*5 
-        hidx = np.concatenate([
-            [(d1,d2,dfidx) for dfidx in random.sample(range(0,DFsByDay, batch_dfs), k=min(DFsByDay//batch_dfs, max_rows_per_day))] 
-                               for (d1,d2) in zip(days_b1, days_b2)])
-        main_df = pd.DataFrame(hidx, columns=[BLOCK1,BLOCK2,"DATAFRAMES"])
-        main_df.sort_values(inplace=True, by=[BLOCK1,"DATAFRAMES"])
-    for fk in fish_keys:
-        block = BLOCK1 if BLOCK1 in fk else BLOCK2
-        data = load_trajectory_data(parameters, fk)
-        step_means = np.concatenate([list(
-            map(
-                lambda batch: (
-                    np.mean(batch[1]),
-                    di["day"][0][0],
-                    map_to_batch_dfs(batch[0], batch_dfs)
-                                ),
-                zip(*split_into_batches(di["df_time_index"].flatten(),di["projections"][:,0], batch_size=batch_dfs))
-            )
-        ) for di in data])
-
-        step_df = pd.DataFrame({
-            fk:step_means[:,0], 
-            block:step_means[:,1],
-            "DATAFRAMES":step_means[:,2]
-                            }).dropna()
-        main_df = main_df.merge(step_df,on=[block,"DATAFRAMES"], how="left")
-    return main_df
-
-def map_to_batch_dfs(batch, batch_dfs):
-    if len(batch)==0: return np.nan
-    else: return int((batch[0]//(batch_dfs))*batch_dfs - (6*60*60*5)) # experiment starts at 6am
 
 if __name__ == "__main__":
     parameters = set_parameters()

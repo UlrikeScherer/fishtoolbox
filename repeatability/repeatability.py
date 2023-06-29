@@ -2,6 +2,7 @@ import glob
 import os
 from config import BLOCK1, BLOCK2
 import numpy as np
+from data_factory.table_export import df_table, get_melted_table
 from data_factory.utils import get_days, set_parameters, get_individuals_keys
 from data_factory.processing import load_trajectory_data
 import pandas as pd
@@ -66,21 +67,6 @@ def run_repeatability():
         #rr[i] = repeatability(step_list)
     pd.DataFrame(rr, columns=["h%s"%r for r in range(0,9)]).to_csv(parameters.projectPath+"/repeatability_lmm_by_h.csv",sep=";")
     return rr
-
-def df_table(data,block, fish_keys):
-    return pd.concat([pd.DataFrame({"step":d["projections"][:,0],"time":d["df_time_index"].flatten()}) for d in data],keys=[fish_keys.index(block+"_"+d["fish_key"][0][0]) for d in data]).reset_index()
-
-def get_melted_table(data_avg_step):
-    melted = pd.melt(data_avg_step, id_vars=["block1","block2","DATAFRAMES"],value_vars=data_avg_step.columns[3:], var_name="id", value_name="step")
-    split_cols = melted['id'].str.split('_', expand=True)
-    split_cols.columns = ['block', 'cam_id', 'pos']
-    split_cols['id_cat'] = melted['id'].astype('category').cat.codes
-    #combine the melted dataframe with the split columns
-    result = pd.concat([melted, split_cols], axis=1)
-    result['block_cat'] = result['block'].astype('category').cat.codes
-    result["day"]= result["block1"].astype("category").cat.codes
-    result["minutes"] = result["DATAFRAMES"] // (60*5)
-    return result.dropna()
 
 def get_repeatability_dxdy(parameters, data_avg_step):
     result = get_melted_table(data_avg_step)

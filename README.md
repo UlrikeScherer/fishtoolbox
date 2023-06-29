@@ -15,7 +15,7 @@ Install the following packages:
 - [motionmapperpy fork](https://github.com/lukastaerk/motionmapperpy)
 
 #### Data Flow
-![Dataflow](docs/dataflow.pdf)
+![Dataflow](docs/dataflow.pdf?raw=true)
 
 ### Using the HPC cluster
 1. Start on the GPU
@@ -52,8 +52,10 @@ There are three ways in this module to compute plasticity.
 ## Table Export 
 Records function to export averaged step length to a csv file and melted them into a long format table for statistical analysis (Repeatability).
 
-## Repeatability 
+# Repeatability 
+## Repeatability
 From means of features (step, angle, wall distance), e.g. batches of 60 data frames. Produce a long table, recording block number, id. 
+## Sampling
 
 
 

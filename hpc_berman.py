@@ -31,7 +31,7 @@ def factory_main():
     print("Individuals ids: ", indiviuals_ids, "number of individuals: ", len(indiviuals_ids))
     parameters.normalize_func = return_normalization_func(parameters)
     print("Subsample from projections")
-    #mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
+    mmpy.subsampled_tsne_from_projections(parameters, parameters.projectPath)
     print("Fit data / find embeddings")
     fit_data(parameters)
     print("Find Watershed...")

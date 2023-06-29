@@ -15,7 +15,7 @@ Install the following packages:
 - [motionmapperpy fork](https://github.com/lukastaerk/motionmapperpy)
 
 #### Data Flow
-![Dataflow](docs/dataflow.pdf?raw=true)
+![Dataflow](./docs/dataflow.pdf)
 
 ### Using the HPC cluster
 1. Start on the GPU

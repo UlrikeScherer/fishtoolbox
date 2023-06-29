@@ -1,0 +1,26 @@
+name: toolbox
+channels:                                                                                                                                                                            
+   - defaults
+   - anaconda
+   - conda-forge
+   - rapidsai
+   - nvidia
+dependencies:
+   # environment installations
+   - python=3.10.11
+   - conda==23.5.0
+   - setuptools
+   - pip
+   - wheel
+   - conda-content-trust
+   # user-dependent installations
+   - anaconda::h5py==3.7.0
+   - conda-forge::cudatoolkit==11.8
+   - conda-forge::graph-tool==2.56
+   - conda-forge::hdf5storage==0.1.19
+   - conda-forge::moviepy==1.0.3
+   - conda-forge::scikit-learn==1.2.2
+   - conda-forge::scikit-image==0.20.0
+   - conda-forge::statsmodels==0.14.0
+   - rapidsai::cudf==23.04
+   - rapidsai::cuml==23.04

@@ -11,7 +11,7 @@ The following repositories are project-dependencies that have to been build insi
 ## Installation
 1. Environment installations using Conda, including the python environment and c++ dependencies
     ```bash
-    conda env create --file environment.yml
+    conda env create -n toolbox --file environment.yml
     conda activate toolbox
     ```
 2. Python package installations using python-pip

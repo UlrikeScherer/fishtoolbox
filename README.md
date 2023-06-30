@@ -84,9 +84,11 @@ There are three ways in this module to compute plasticity.
 Records function to export averaged step length to a csv file and melted them into a long format table for statistical analysis (Repeatability).
 
 # Repeatability 
-## Repeatability
+## ![Repeatability](https://cran.r-project.org/web/packages/rptR/vignettes/rptR.html)
 From means of features (step, angle, wall distance), e.g. batches of 60 data frames. Produce a long table, recording block number, id. 
 ## Sampling
+The research question is how many samples are needed to get a good estimate of the repeatability.
+Provided a table with means of a feature (step length) over a number of consecutive data frames, we can sample from this table a number of minutes for a number of days. Further we look at the effect when sampling the time of the day only once for all days versus sampling the time of the day for each day.
 
 
 ## Poltting 
@@ -94,6 +96,6 @@ From means of features (step, angle, wall distance), e.g. batches of 60 data fra
 - ethnogram_of_clusters
 
 # TODOs:
-- check the new area files, see if there are significant updates for any of them, what is the difference, do we need an refined get_area_function(fishkey,day) 
+- check the new area files, see if there are significant updates for any of them, what is the difference, do we need an refined get_area_function(fishkey,day) ? 
 
 

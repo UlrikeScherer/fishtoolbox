@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Stärk"
+  given-names: "Luka"
+  orcid: "https://orcid.org/0000-0002-1390-7432"
+- family-names: "Scherer"
+  given-names: "Ulrike"
+  orcid: "https://orcid.org/0000-0003-1086-8527"
+- family-names: "Ehlman"
+  given-names: "Sean"
+  orcid: "https://orcid.org/0000-0001-6981-9549"
+- family-name: "Wolf"
+  given-name: "Max"
+  orcid: "https://orcid.org/0000-0001-8878-0504"
+title: "Tool for behavioural clustering and analysis of trajectories."
+version: 1.0.0
+date-released: 2023-06-30
+url: "https://github.com/UlrikeScherer/fishtoolbox"

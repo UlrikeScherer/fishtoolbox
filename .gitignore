@@ -2,6 +2,7 @@
 *.pyc 
 notebooks/*.ipynb
 */.ipynb_checkpoints/*
+data_temp/
 
 # dont ignore the specified notebooks 
 !*/coefficient_of_variation.ipynb

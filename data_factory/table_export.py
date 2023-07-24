@@ -1,9 +1,11 @@
 """
 Functions for exporting data to csv tables and melting them to long format.
 """
+import os, re
 import random
 import numpy as np
 import pandas as pd
+import glob
 from .processing import load_trajectory_data
 from .utils import get_days, get_individuals_keys, set_parameters, split_into_batches
 from config import BLOCK1, BLOCK2
@@ -118,6 +120,7 @@ def load_coefficient_of_variation_data(
     principal_components = ['distance to wall', 'turning angle', 'step length']
 ):
     cv_data_dict = {}
+    # TODO: type safety for using both 'daily' and 'hourly'; mitigate overriding of cv_data_dicg
     for time in time_range:
         for accuracy in accuracies:
             for mode in principal_components:
@@ -158,7 +161,7 @@ def build_singular_ids_table(
         output_id_dict[f'{id}'] = intermediate_dict
     return output_id_dict
 
-
+# TODO: cleanup of unused variables
 def merge_cov_and_entropy_dicts_to_one_df(
     cov_dict,
     entropy_dict,
@@ -245,7 +248,7 @@ def merge_cov_and_entropy_dicts_to_one_df(
     return all_df_reordered
 
 
-def build_and_unify_cov_and_entropy_tables(
+def build_and_unify_cov_and_entropy_tables_flow(
     parameters,
     fish_keys,
     time_range_extraction= ['daily', 'hourly'],
@@ -301,6 +304,181 @@ def build_and_unify_cov_and_entropy_tables(
         output_file_name = output_file_name
     )
     return output_df
+
+
+def extract_and_store_relevant_dates(
+    raw_data_path: str
+) -> dict:
+    # TODO: docstring with explanation, when to use date-string, when to insert nan values; and why
+    # nested hierarchy: block, compartment, cam_serial, dates
+    # block_dir_list = ['FE_tracks_060000_block1', 'FE_tracks_060000_block2']
+    # compartment_dir_list = ['FE_block*_060000_front_final', 'FE_block*_060000_back_final']
+
+    date_dict = {}
+    for block in ['1', '2']:
+        block_id = f'FE_tracks_060000_block{block}'
+        compartment_dict = {}
+        for compartment in ['front', 'back']:
+            compartment_id = f'FE_block*_060000_{compartment}_final'
+            serials_block1_comp_back = list(
+                glob.glob(f'{raw_data_path}/{block_id}/{compartment_id}/*')
+            )
+            serials_block1_comp_back.sort()
+            serials_dates_dict = {}
+            # TODO: outsource to individual function
+            for id in serials_block1_comp_back:
+                id_base_name = os.path.basename(id)
+                dates_list = []
+                dates_paths = glob.glob(f'{id}/*')
+                dates_paths.sort()
+                pattern = r'^(?!.*no_fish).*?(\d{8})_\d{6}\.\d+'
+
+                for date_element in dates_paths:
+                    string = os.path.basename(date_element)
+                    match = re.match(pattern, string)
+                    if match:
+                        date = match.group(1)
+                        dates_list.append(date)
+                    else:
+                        dates_list.append('nan')
+
+                serials_dates_dict[id_base_name] = dates_list
+            compartment_dict[compartment] = serials_dates_dict
+        date_dict[block] = compartment_dict
+    return date_dict
+
+
+def extract_features_from_metadata_table(
+    date_dict,
+    metadata_df,
+    time_constraint = 'daily',
+):
+    hourly_measure = True if time_constraint == 'hourly' else False
+    table_id_dict = {}
+    for block_id, block in date_dict.items():
+        for compartment_id, compartment in block.items():
+            for serial_id, serial in compartment.items():
+                table_id = f'block{block_id}_{serial_id}_{compartment_id}'
+                serial_id = f'{serial_id}_{compartment_id}'
+                id_df = metadata_df[(metadata_df['block']==int(block_id)) & (metadata_df['tank_ID']==serial_id)]
+                date_meta_data_list= []
+                timestep = 1
+                for date_str in serial:
+                    for i in range(0, 8 ** hourly_measure):
+                        # save nan values as well
+                        # TODO: replace nan-string with np.nan
+                        if date_str == 'nan':
+                            out_dict = {
+                                'timestep': timestep,
+                                'mother_ID': 'nan',
+                                'standard_length_cm_beginning_of_week': 'nan',
+                                'tank_compartment': 'nan',
+                                'tank_position': 'nan',
+                                'tank_system': 'nan',
+                            }
+                        else:
+                            # Format the date in 'DD.MM.YY' format
+                            year = date_str[2:4]
+                            month = date_str[4:6]
+                            day = date_str[6:]
+                            converted_date = f"{day}.{month}.{year}"
+                            outdf = id_df[(id_df['experimental_date']== converted_date)]
+                            out_dict = {
+                                'timestep': timestep,
+                                'mother_ID': outdf['mother_ID'].values[0],
+                                'standard_length_cm_beginning_of_week': float(outdf['standard_length_cm_beginning_of_week'].values[0]),
+                                'tank_compartment': outdf['tank_compartment'].values[0],
+                                'tank_position': outdf['tank_position'].values[0],
+                                'tank_system': int(outdf['tank_system'].values[0])
+                            }
+                        timestep += 1
+                        date_meta_data_list.append(out_dict)
+                table_id_dict[table_id] = date_meta_data_list
+    return table_id_dict
+
+
+def merge_metadata_and_cov_entropy_data(
+    cov_entropy_df,
+    table_id_dict,
+    time_constraint = 'daily',
+    output_file_name = None
+):
+    # TODO: implement for hourly tables
+    # TODO: implement unification of the nan-values, apply to entropy measures
+    df_list = []
+    for id, content in table_id_dict.items():
+        # merging the tables element-wise for every individual: cov-entropy and metadata
+        df_list.append(
+            pd.merge(
+                cov_entropy_df[cov_entropy_df['id']==id], pd.DataFrame(table_id_dict[id]), 
+                on='timestep', 
+                how='outer'
+            )
+        )
+    # concatenating the tables for every individual
+    result_df = pd.concat(df_list, ignore_index=True)
+    result_df.replace('nan', np.nan, inplace=True)
+    if output_file_name is not None: 
+        result_df.to_excel(output_file_name)
+    return result_df
+
+
+def apply_metadata_to_cov_entropy_table_flow(
+    cov_entropy_df,
+    raw_data_path,
+    metadata_df,
+    time_constraint,
+    output_file_name = None
+):
+    date_dict = extract_and_store_relevant_dates(
+        raw_data_path=raw_data_path
+    )
+    table_id_dict = extract_features_from_metadata_table(
+        date_dict=date_dict, 
+        metadata_df=metadata_df, 
+        time_constraint=time_constraint
+    )
+    result_df = merge_metadata_and_cov_entropy_data(
+        cov_entropy_df, 
+        table_id_dict, 
+        time_constraint=time_constraint,
+        output_file_name=output_file_name
+    )
+    return result_df
+
+
+def unified_table_flow(
+    parameters,
+    fish_keys,
+    time_range_extraction= ['daily', 'hourly'],
+    time_constraint = 'daily',
+    cov_principal_components = ['distance to wall', 'turning angle', 'step length'],
+    cov_accuracies = ['050'],
+    cluster_sizes = ['005', '007', '010', '020', '050'],
+    raw_data_path = 'FE_tracks_060000_final_06July2022',
+    metadata_path = 'FE_Metadata_for_Entropy_models.xlsx',
+    output_file_name = None
+):
+    cov_entropy_df = build_and_unify_cov_and_entropy_tables_flow(
+        parameters = parameters,
+        fish_keys = fish_keys,
+        time_range_extraction= time_range_extraction,
+        time_constraint = time_constraint,
+        cov_principal_components = cov_principal_components,
+        cov_accuracies = cov_accuracies,
+        cluster_sizes = cluster_sizes,
+        output_file_name = None
+    )
+    metadata_df = pd.read_excel(metadata_path)
+    unified_df = apply_metadata_to_cov_entropy_table_flow(
+        cov_entropy_df,
+        raw_data_path,
+        metadata_df,
+        time_constraint,
+        output_file_name = output_file_name
+    )
+    return unified_df
+
 
 if __name__ == "__main__":
     parameters = set_parameters()

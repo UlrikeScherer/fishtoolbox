@@ -454,6 +454,7 @@ def reorder_entropy_and_rest_data_by_key(
 def unifiy_table_timesteps(
     input_df, 
     table_id_dict, 
+    discard_nan_rows = False,
     output_file_name = None
 ):
     reordered_df_list = []
@@ -463,6 +464,11 @@ def unifiy_table_timesteps(
         )
 
     reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
+    if discard_nan_rows:
+        reordered_df.dropna(
+            subset=['d2w'], 
+            inplace=True
+        )
     if output_file_name is not None: 
         reordered_df.to_excel(output_file_name)
     return reordered_df
@@ -502,6 +508,7 @@ def unified_table_flow(
     cluster_sizes = ['005', '007', '010', '020', '050'],
     raw_data_path = 'FE_tracks_060000_final_06July2022',
     metadata_path = 'FE_Metadata_for_Entropy_models.xlsx',
+    discard_nan_rows = False,
     output_file_name = None
 ):
     cov_entropy_df = build_and_unify_cov_and_entropy_tables_flow(
@@ -526,9 +533,10 @@ def unified_table_flow(
     unified_df = unifiy_table_timesteps(
         merged_df,
         table_id_dict,
+        discard_nan_rows = discard_nan_rows,
         output_file_name=output_file_name
     )
-    
+
     return unified_df
 
 

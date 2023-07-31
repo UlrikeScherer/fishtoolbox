@@ -466,7 +466,12 @@ def unifiy_table_timesteps(
     reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
     if discard_nan_rows:
         reordered_df.dropna(
-            subset=['d2w'], 
+            subset=
+                ['d2w', 'angle', 'step', 
+                 'entropy_050', 'entropy_007', 'entropy_010', 
+                 'entropy_020', 'entropy_050'
+                ], 
+            how='any', 
             inplace=True
         )
     if output_file_name is not None: 

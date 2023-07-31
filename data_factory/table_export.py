@@ -161,14 +161,11 @@ def build_singular_ids_table(
         output_id_dict[f'{id}'] = intermediate_dict
     return output_id_dict
 
-# TODO: cleanup of unused variables
 def merge_cov_and_entropy_dicts_to_one_df(
     cov_dict,
     entropy_dict,
     fish_keys,
-    time_constraint = 'daily',
     cov_modes = ['d2w', 'angle', 'step'],
-    cov_accuracy = '050',
     entropy_modes = ['005', '007', '010', '020', '050'],
     output_file_name = None
 ):
@@ -297,9 +294,9 @@ def build_and_unify_cov_and_entropy_tables_flow(
         cov_id_features_dict,
         entropy_id_features_dict,
         fish_keys,
-        time_constraint = time_constraint,
+        # time_constraint = time_constraint,
         cov_modes = cov_principal_components,
-        cov_accuracy = cov_accuracies[0],
+        # cov_accuracy = cov_accuracies[0],
         entropy_modes = cluster_sizes,
         output_file_name = output_file_name
     )
@@ -400,7 +397,6 @@ def extract_features_from_metadata_table(
 def merge_metadata_and_cov_entropy_data(
     cov_entropy_df,
     table_id_dict,
-    time_constraint = 'daily',
     output_file_name = None
 ):
     # TODO: implement for hourly tables
@@ -423,6 +419,55 @@ def merge_metadata_and_cov_entropy_data(
     return result_df
 
 
+def reorder_entropy_and_rest_data_by_key(
+    input_df, 
+    key
+):
+    current_id = input_df[input_df['id']==key]
+    current_id_entropy_df = current_id[['entropy_005', 'entropy_007', 'entropy_010', 'entropy_020', 'entropy_050']]
+    current_id_rest = current_id[['timestep', 'id', 'd2w', 'angle', 'step', 'mother_ID', 'standard_length_cm_beginning_of_week', 'tank_compartment', 'tank_position', 'tank_system']]
+    
+    df_list = []
+    # rearranged_df = pd.DataFrame
+    rest_index = 0
+    entropy_index = 0
+    for index, row in current_id.iterrows():
+        rest_index += 1
+        entropy_index += 1
+        df1 = pd.DataFrame(current_id_rest.iloc[rest_index - 1]).T
+        if np.isnan(row['d2w']):
+            df2 = pd.DataFrame(current_id_entropy_df.iloc[entropy_index - 1]).T
+            df2[:] = np.nan
+            entropy_index -= 1
+        else:
+            df2 = pd.DataFrame(current_id_entropy_df.iloc[entropy_index - 1]).T
+        df1['tmp'] = rest_index
+        df2['tmp'] = rest_index
+        df_out = pd.merge(df1, df2, on='tmp')
+        df_out = df_out.drop('tmp', axis=1)
+        # establish correct ordering 
+        df_out = df_out[['timestep','id','d2w', 'angle','step','entropy_005','entropy_007','entropy_010','entropy_020','entropy_050','mother_ID','standard_length_cm_beginning_of_week','tank_compartment','tank_position','tank_system']]
+        df_list.append(df_out)
+    return pd.concat(df_list, axis=0, ignore_index=True)
+
+
+def unifiy_table_timesteps(
+    input_df, 
+    table_id_dict, 
+    output_file_name = None
+):
+    reordered_df_list = []
+    for key in table_id_dict.keys():
+        reordered_df_list.append(
+            reorder_entropy_and_rest_data_by_key(input_df, key)
+        )
+
+    reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
+    if output_file_name is not None: 
+        reordered_df.to_excel(output_file_name)
+    return reordered_df
+
+
 def apply_metadata_to_cov_entropy_table_flow(
     cov_entropy_df,
     raw_data_path,
@@ -441,10 +486,10 @@ def apply_metadata_to_cov_entropy_table_flow(
     result_df = merge_metadata_and_cov_entropy_data(
         cov_entropy_df, 
         table_id_dict, 
-        time_constraint=time_constraint,
+        # time_constraint=time_constraint,
         output_file_name=output_file_name
     )
-    return result_df
+    return result_df, table_id_dict
 
 
 def unified_table_flow(
@@ -470,13 +515,20 @@ def unified_table_flow(
         output_file_name = None
     )
     metadata_df = pd.read_excel(metadata_path)
-    unified_df = apply_metadata_to_cov_entropy_table_flow(
+    merged_df, table_id_dict = apply_metadata_to_cov_entropy_table_flow(
         cov_entropy_df,
         raw_data_path,
         metadata_df,
         time_constraint,
-        output_file_name = output_file_name
+        output_file_name = None
     )
+
+    unified_df = unifiy_table_timesteps(
+        merged_df,
+        table_id_dict,
+        output_file_name=output_file_name
+    )
+    
     return unified_df
 
 

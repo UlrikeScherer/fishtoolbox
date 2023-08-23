@@ -211,7 +211,7 @@ def compute_coefficient_of_variation(parameters, fish_keys, n_df=50, forall=Fals
 
 def for_all_cluster_entrophy(parameters, fish_ids):
     get_clusters_func = lambda fk,d: load_clusters_concat(parameters, fk, d )
-    for k in [10,20]:
+    for k in [5, 7, 10, 20, 50]:
         parameters.kmeans=k
         wshedfile = hdf5storage.loadmat('%s/%s/zVals_wShed_groups_%s.mat'%(parameters.projectPath, parameters.method,parameters.kmeans))
         get_clusters_func_wshed = lambda fk, d: get_regions_for_fish_key(wshedfile,fk,d)
@@ -226,6 +226,8 @@ if __name__ == "__main__":
     for_all_cluster_entrophy(parameters, fks)
     for flag in [True, False]:
         compute_coefficient_of_variation(parameters, fks, n_df=10,
+                      forall=True, fit_degree=2, by_the_hour=flag)
+        compute_coefficient_of_variation(parameters, fks, n_df=50,
                       forall=True, fit_degree=2, by_the_hour=flag)
     files_daily = sorted(glob.glob(
         f"/{parameters.projectPath}/plasticity/*/*daily*.csv"

@@ -120,7 +120,6 @@ def load_coefficient_of_variation_data(
     principal_components = ['distance to wall', 'turning angle', 'step length']
 ):
     cv_data_dict = {}
-    # TODO: type safety for using both 'daily' and 'hourly'; mitigate overriding of cv_data_dicg
     for time in time_range:
         for accuracy in accuracies:
             for mode in principal_components:
@@ -294,9 +293,7 @@ def build_and_unify_cov_and_entropy_tables_flow(
         cov_id_features_dict,
         entropy_id_features_dict,
         fish_keys,
-        # time_constraint = time_constraint,
         cov_modes = cov_principal_components,
-        # cov_accuracy = cov_accuracies[0],
         entropy_modes = cluster_sizes,
         output_file_name = output_file_name
     )
@@ -306,7 +303,6 @@ def build_and_unify_cov_and_entropy_tables_flow(
 def extract_and_store_relevant_dates(
     raw_data_path: str
 ) -> dict:
-    # TODO: docstring with explanation, when to use date-string, when to insert nan values; and why
     # nested hierarchy: block, compartment, cam_serial, dates
     # block_dir_list = ['FE_tracks_060000_block1', 'FE_tracks_060000_block2']
     # compartment_dir_list = ['FE_block*_060000_front_final', 'FE_block*_060000_back_final']
@@ -322,7 +318,6 @@ def extract_and_store_relevant_dates(
             )
             serials_block1_comp_back.sort()
             serials_dates_dict = {}
-            # TODO: outsource to individual function
             for id in serials_block1_comp_back:
                 id_base_name = os.path.basename(id)
                 dates_list = []
@@ -363,7 +358,6 @@ def extract_features_from_metadata_table(
                 for date_str in serial:
                     for i in range(0, 8 ** hourly_measure):
                         # save nan values as well
-                        # TODO: replace nan-string with np.nan
                         if date_str == 'nan':
                             out_dict = {
                                 'timestep': timestep,
@@ -399,8 +393,6 @@ def merge_metadata_and_cov_entropy_data(
     table_id_dict,
     output_file_name = None
 ):
-    # TODO: implement for hourly tables
-    # TODO: implement unification of the nan-values, apply to entropy measures
     df_list = []
     for id, content in table_id_dict.items():
         # merging the tables element-wise for every individual: cov-entropy and metadata
@@ -423,12 +415,13 @@ def reorder_entropy_and_rest_data_by_key(
     input_df, 
     key
 ):
+    if (key not in (input_df['id'].values).tolist()):
+        return None
     current_id = input_df[input_df['id']==key]
     current_id_entropy_df = current_id[['entropy_005', 'entropy_007', 'entropy_010', 'entropy_020', 'entropy_050']]
     current_id_rest = current_id[['timestep', 'id', 'd2w', 'angle', 'step', 'mother_ID', 'standard_length_cm_beginning_of_week', 'tank_compartment', 'tank_position', 'tank_system']]
     
     df_list = []
-    # rearranged_df = pd.DataFrame
     rest_index = 0
     entropy_index = 0
     for index, row in current_id.iterrows():
@@ -459,9 +452,11 @@ def unifiy_table_timesteps(
 ):
     reordered_df_list = []
     for key in table_id_dict.keys():
-        reordered_df_list.append(
-            reorder_entropy_and_rest_data_by_key(input_df, key)
-        )
+        reordered_df_element = reorder_entropy_and_rest_data_by_key(input_df, key)
+        if reordered_df_element is not None:
+            reordered_df_list.append(reordered_df_element)
+        else:
+            print(f'Warning: key {key} from metadata not found in training data')
 
     reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
     if discard_nan_rows:
@@ -534,7 +529,6 @@ def unified_table_flow(
         time_constraint,
         output_file_name = None
     )
-
     unified_df = unifiy_table_timesteps(
         merged_df,
         table_id_dict,

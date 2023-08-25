@@ -81,8 +81,8 @@ def plot_area(area_box, ax):
     
     
 def ethnogram_of_clusters(parameters, clusters, start_time=0, end_time=8*(60**2)*5, fish_key="", day="",rows=4, write_fig=False, name_append=""):
+    # f2min = (60**2)*5 # conversion factor for hours of end_time to the respective data_points 
     wregs = clusters[start_time:end_time]
-    f2min = (60**2)*5
     len_half = wregs.shape[0]//rows
     step = len_half//10
     ethogram = np.zeros((wregs.max(), len(wregs)))

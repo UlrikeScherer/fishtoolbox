@@ -413,12 +413,15 @@ def merge_metadata_and_cov_entropy_data(
 
 def reorder_entropy_and_rest_data_by_key(
     input_df, 
-    key
+    key,
+    cluster_sizes = ['005', '007', '010', '020', '050'],
 ):
     if (key not in (input_df['id'].values).tolist()):
         return None
     current_id = input_df[input_df['id']==key]
-    current_id_entropy_df = current_id[['entropy_005', 'entropy_007', 'entropy_010', 'entropy_020', 'entropy_050']]
+    entropy_distinction_operation = lambda x:'entropy_'+x
+    entropy_distinction_list = list(map(entropy_distinction_operation, cluster_sizes))
+    current_id_entropy_df = current_id[entropy_distinction_list]
     current_id_rest = current_id[['timestep', 'id', 'd2w', 'angle', 'step', 'mother_ID', 'standard_length_cm_beginning_of_week', 'tank_compartment', 'tank_position', 'tank_system']]
     
     df_list = []
@@ -439,7 +442,7 @@ def reorder_entropy_and_rest_data_by_key(
         df_out = pd.merge(df1, df2, on='tmp')
         df_out = df_out.drop('tmp', axis=1)
         # establish correct ordering 
-        df_out = df_out[['timestep','id','d2w', 'angle','step','entropy_005','entropy_007','entropy_010','entropy_020','entropy_050','mother_ID','standard_length_cm_beginning_of_week','tank_compartment','tank_position','tank_system']]
+        df_out = df_out[['timestep','id','d2w','angle','step'] + entropy_distinction_list + ['mother_ID','standard_length_cm_beginning_of_week','tank_compartment','tank_position','tank_system']]
         df_list.append(df_out)
     return pd.concat(df_list, axis=0, ignore_index=True)
 
@@ -448,24 +451,25 @@ def unifiy_table_timesteps(
     input_df, 
     table_id_dict, 
     discard_nan_rows = False,
+    cluster_sizes = ['005', '007', '010', '020', '050'],
     output_file_name = None
 ):
     reordered_df_list = []
     for key in table_id_dict.keys():
-        reordered_df_element = reorder_entropy_and_rest_data_by_key(input_df, key)
+        reordered_df_element = reorder_entropy_and_rest_data_by_key(input_df, key, cluster_sizes)
         if reordered_df_element is not None:
             reordered_df_list.append(reordered_df_element)
         else:
             print(f'Warning: key {key} from metadata not found in training data')
 
     reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
+
+    entropy_distinction_operation = lambda x:'entropy_'+x
+    entropy_distinction_list = list(map(entropy_distinction_operation, cluster_sizes))
     if discard_nan_rows:
         reordered_df.dropna(
             subset=
-                ['d2w', 'angle', 'step', 
-                 'entropy_050', 'entropy_007', 'entropy_010', 
-                 'entropy_020', 'entropy_050'
-                ], 
+                ['d2w', 'angle', 'step'] + entropy_distinction_list, 
             how='any', 
             inplace=True
         )
@@ -533,6 +537,7 @@ def unified_table_flow(
         merged_df,
         table_id_dict,
         discard_nan_rows = discard_nan_rows,
+        cluster_sizes= cluster_sizes,
         output_file_name=output_file_name
     )
 

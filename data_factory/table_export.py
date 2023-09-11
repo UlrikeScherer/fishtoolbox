@@ -103,14 +103,21 @@ def get_melted_table(df):
 def load_entropy_data(
     parameters, 
     time_range = ['daily', 'hourly'],
-    cluster_sizes = ['005', '007', '010', '020', '050']
+    cluster_sizes = ['005', '007', '010', '020', '050'],
+    clustering_methods = ['kmeans', 'umap'],
 ):
-    entropy_data_dict = {}
-    for time in time_range:
-        for size in cluster_sizes:
-            file_name = parameters.projectPath+f'/plasticity/cluster_entropy_wshed/cluster_entropy_wshed_{time}_{size}.csv'
-            entropy_data_dict[f'{time}_{size}'] = pd.read_csv(file_name)
-    return entropy_data_dict
+    entropy_sum_dict = {}
+    for method in clustering_methods:
+        entropy_data_dict = {}
+        for time in time_range:
+            for size in cluster_sizes:
+                if method == 'kmeans':
+                    file_name = parameters.projectPath+f'/plasticity/cluster_entropy_kmeans/cluster_entropy_kmeans_{time}_{size}.csv'
+                else:
+                    file_name = parameters.projectPath+f'/plasticity/cluster_entropy_wshed/cluster_entropy_wshed_{time}_{size}.csv'
+                entropy_data_dict[f'{time}_{size}'] = pd.read_csv(file_name)
+        entropy_sum_dict[method] = entropy_data_dict
+    return entropy_sum_dict
 
 
 def load_coefficient_of_variation_data(
@@ -139,6 +146,7 @@ def build_singular_ids_table(
     fish_keys,
     time_constraint,
     measure = 'entropy',
+    clustering_method = None,
     modes = ['005', '007', '010', '020', '050'],
     cov_accuracy = '050',
 ):
@@ -152,7 +160,7 @@ def build_singular_ids_table(
                 column_identifier_str = f'{mode}'
             elif measure == 'entropy':
                 identifier_str = f'{time_constraint}_{mode}'
-                column_identifier_str = f'entropy_{mode}'
+                column_identifier_str = f'{clustering_method}_entropy_{mode}'
             mode_df = input_data_dict[f'{identifier_str}'][[id, 'Unnamed: 0']]
             mode_df = mode_df.rename(columns={'Unnamed: 0': 'timestep', f'{id}': f'{column_identifier_str}'})
             mode_df['id'] = id
@@ -162,33 +170,48 @@ def build_singular_ids_table(
 
 def merge_cov_and_entropy_dicts_to_one_df(
     cov_dict,
-    entropy_dict,
+    entropy_clustering_method_dict,
     fish_keys,
     cov_modes = ['d2w', 'angle', 'step'],
     entropy_modes = ['005', '007', '010', '020', '050'],
     output_file_name = None
 ):
     
-    cv_dfs_list = []
-    entropy_dfs_list = []
-    
-    for id in fish_keys:
-        # cov values
-        cv_dict = cov_dict[id]
-        cv_df = pd.merge(
-            pd.merge(
-                cv_dict[cov_modes[0]], cv_dict[cov_modes[1]], 
-                on=['timestep', 'id']
-            ), cv_dict[cov_modes[2]],
-            on=['timestep', 'id']
-        )
-        cv_dfs_list.append(cv_df)
+    clustering_method_dict = {}
+    for entropy_key, entropy_value in entropy_clustering_method_dict.items():
+        cv_dfs_list = []
+        entropy_dfs_list = []
         
-        # entropy values
-        entropy_specified_dict = entropy_dict[id]
-        if len(entropy_modes) == 5:
-            entropy_df = pd.merge(
+        for id in fish_keys:
+            # cov values
+            cv_dict = cov_dict[id]
+            cv_df = pd.merge(
                 pd.merge(
+                    cv_dict[cov_modes[0]], cv_dict[cov_modes[1]], 
+                    on=['timestep', 'id']
+                ), cv_dict[cov_modes[2]],
+                on=['timestep', 'id']
+            )
+            cv_dfs_list.append(cv_df)
+            
+            # entropy values
+            entropy_specified_dict = entropy_value[id]
+            if len(entropy_modes) == 5:
+                entropy_df = pd.merge(
+                    pd.merge(
+                        pd.merge(
+                            pd.merge(
+                                entropy_specified_dict[entropy_modes[0]], entropy_specified_dict[entropy_modes[1]],
+                                on=['timestep', 'id']
+                            ), entropy_specified_dict[entropy_modes[2]],
+                            on=['timestep', 'id']
+                        ), entropy_specified_dict[entropy_modes[3]],
+                        on=['timestep', 'id']
+                    ), entropy_specified_dict[entropy_modes[4]],
+                    on=['timestep', 'id']
+                )
+            elif len(entropy_modes) == 4:
+                entropy_df = pd.merge(
                     pd.merge(
                         pd.merge(
                             entropy_specified_dict[entropy_modes[0]], entropy_specified_dict[entropy_modes[1]],
@@ -197,50 +220,45 @@ def merge_cov_and_entropy_dicts_to_one_df(
                         on=['timestep', 'id']
                     ), entropy_specified_dict[entropy_modes[3]],
                     on=['timestep', 'id']
-                ), entropy_specified_dict[entropy_modes[4]],
-                on=['timestep', 'id']
-            )
-        elif len(entropy_modes) == 4:
-            entropy_df = pd.merge(
-                pd.merge(
+                )
+            elif len(entropy_modes) == 3:
+                entropy_df = pd.merge(
                     pd.merge(
                         entropy_specified_dict[entropy_modes[0]], entropy_specified_dict[entropy_modes[1]],
                         on=['timestep', 'id']
-                    ), entropy_specified_dict[entropy_modes[2]],
+                    ), entropy_specified_dict[entropy_modes[3]],
                     on=['timestep', 'id']
-                ), entropy_specified_dict[entropy_modes[3]],
-                on=['timestep', 'id']
-            )
-        elif len(entropy_modes) == 3:
-            entropy_df = pd.merge(
-                pd.merge(
+                )
+            elif len(entropy_modes) == 2:
+                entropy_df = pd.merge(
                     entropy_specified_dict[entropy_modes[0]], entropy_specified_dict[entropy_modes[1]],
                     on=['timestep', 'id']
-                ), entropy_specified_dict[entropy_modes[3]],
-                on=['timestep', 'id']
-            )
-        elif len(entropy_modes) == 2:
-            entropy_df = pd.merge(
-                entropy_specified_dict[entropy_modes[0]], entropy_specified_dict[entropy_modes[1]],
-                on=['timestep', 'id']
-            )
-        entropy_dfs_list.append(entropy_df)
+                )
+            entropy_dfs_list.append(entropy_df)
 
-    cv_all_df = pd.concat(cv_dfs_list)
-    entropy_all_df = pd.concat(entropy_dfs_list)
+        cv_all_df = pd.concat(cv_dfs_list)
+        entropy_all_df = pd.concat(entropy_dfs_list)
+        clustering_method_dict.update({str(entropy_key) : entropy_all_df})
 
-    cols = ['timestep', 'id']
-    all_df = pd.merge(cv_all_df, entropy_all_df, on=cols)
-    if len(entropy_modes) == 5:
-        all_df_reordered = all_df[['timestep', 'id', cov_modes[0], cov_modes[1], cov_modes[2], f'entropy_{entropy_modes[0]}', f'entropy_{entropy_modes[1]}', f'entropy_{entropy_modes[2]}', f'entropy_{entropy_modes[3]}', f'entropy_{entropy_modes[4]}']]
-    elif len(entropy_modes) == 4:
-        all_df_reordered = all_df[['timestep', 'id', cov_modes[0], cov_modes[1], cov_modes[2], f'entropy_{entropy_modes[0]}', f'entropy_{entropy_modes[1]}', f'entropy_{entropy_modes[2]}', f'entropy_{entropy_modes[3]}']]
-    elif len(entropy_modes) == 3:
-        all_df_reordered = all_df[['timestep', 'id', cov_modes[0], cov_modes[1], cov_modes[2], f'entropy_{entropy_modes[0]}', f'entropy_{entropy_modes[1]}', f'entropy_{entropy_modes[2]}']]
-    elif len(entropy_modes) == 2:
-        all_df_reordered = all_df[['timestep', 'id', cov_modes[0], cov_modes[1], cov_modes[2], f'entropy_{entropy_modes[0]}', f'entropy_{entropy_modes[1]}']]
+    # TODO: check for both clustering methods, check for using only one clustering method
+    clustering_method_dict['kmeans'].set_index(['id', 'timestep'], inplace= True)
+    clustering_method_dict['umap'].set_index(['id', 'timestep'], inplace= True)
+    unified_entropy_dfs = clustering_method_dict['kmeans'].combine_first(
+        clustering_method_dict['umap']
+    ).reset_index()
+
+    cols = ['id', 'timestep']
+    all_df = pd.merge(cv_all_df, unified_entropy_dfs, on=cols)
+
+    entropy_distinction_list = []
+    for entropy_key in entropy_clustering_method_dict.keys():
+        entropy_distinction_operation = lambda x: entropy_key+'_entropy_'+x
+        entropy_distinction_list += list(map(entropy_distinction_operation, entropy_modes))
+
+    all_df_reordered = all_df[['timestep', 'id', cov_modes[0], cov_modes[1], cov_modes[2]] + entropy_distinction_list]
+
     if output_file_name is not None: 
-        all_df_reordered.to_csv(output_file_name)
+        all_df_reordered.to_excel(output_file_name)
     return all_df_reordered
 
 
@@ -252,6 +270,7 @@ def build_and_unify_cov_and_entropy_tables_flow(
     cov_principal_components = ['distance to wall', 'turning angle', 'step length'],
     cov_accuracies = ['050'],
     cluster_sizes = ['005', '007', '010', '020', '050'],
+    clustering_methods = ['kmeans', 'umap'],
     output_file_name = None
 ):
 
@@ -265,7 +284,8 @@ def build_and_unify_cov_and_entropy_tables_flow(
     entropy_data_dict = load_entropy_data(
         parameters, 
         time_range = time_range_extraction,
-        cluster_sizes = cluster_sizes
+        cluster_sizes = cluster_sizes,
+        clustering_methods = clustering_methods
     )
 
     cov_principal_components = [sub.replace('distance to wall', 'd2w') for sub in cov_principal_components]
@@ -281,17 +301,20 @@ def build_and_unify_cov_and_entropy_tables_flow(
         cov_accuracy = cov_accuracies[0],
     )
 
-    entropy_id_features_dict = build_singular_ids_table(
-        entropy_data_dict,
-        fish_keys,
-        time_constraint,
-        measure = 'entropy',
-        modes = cluster_sizes,
-    )
+    entropy_clustering_method_dict = {}
+    for method in clustering_methods:
+        entropy_clustering_method_dict[method] = build_singular_ids_table(
+            entropy_data_dict[method],
+            fish_keys,
+            time_constraint,
+            measure = 'entropy',
+            clustering_method = method,
+            modes = cluster_sizes,
+        )
 
     output_df = merge_cov_and_entropy_dicts_to_one_df(
         cov_id_features_dict,
-        entropy_id_features_dict,
+        entropy_clustering_method_dict,
         fish_keys,
         cov_modes = cov_principal_components,
         entropy_modes = cluster_sizes,
@@ -510,11 +533,13 @@ def unified_table_flow(
     cov_principal_components = ['distance to wall', 'turning angle', 'step length'],
     cov_accuracies = ['050'],
     cluster_sizes = ['005', '007', '010', '020', '050'],
+    clustering_methods = ['kmeans', 'umap'],
     raw_data_path = 'FE_tracks_060000_final_06July2022',
     metadata_path = 'FE_Metadata_for_Entropy_models.xlsx',
     discard_nan_rows = False,
     output_file_name = None
 ):
+    # TODO: integrate used clustering_methods as list ['kmeans', 'umap']
     cov_entropy_df = build_and_unify_cov_and_entropy_tables_flow(
         parameters = parameters,
         fish_keys = fish_keys,
@@ -523,6 +548,7 @@ def unified_table_flow(
         cov_principal_components = cov_principal_components,
         cov_accuracies = cov_accuracies,
         cluster_sizes = cluster_sizes,
+        clustering_methods = clustering_methods,
         output_file_name = None
     )
     metadata_df = pd.read_excel(metadata_path)

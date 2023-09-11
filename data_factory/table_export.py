@@ -438,12 +438,15 @@ def reorder_entropy_and_rest_data_by_key(
     input_df, 
     key,
     cluster_sizes = ['005', '007', '010', '020', '050'],
+    clustering_methods = ['kmeans', 'umap'],
 ):
     if (key not in (input_df['id'].values).tolist()):
         return None
     current_id = input_df[input_df['id']==key]
-    entropy_distinction_operation = lambda x:'entropy_'+x
-    entropy_distinction_list = list(map(entropy_distinction_operation, cluster_sizes))
+    entropy_distinction_list = []
+    for method in clustering_methods:
+        entropy_distinction_operation = lambda x: method+'_entropy_'+x
+        entropy_distinction_list += list(map(entropy_distinction_operation, cluster_sizes))
     current_id_entropy_df = current_id[entropy_distinction_list]
     current_id_rest = current_id[['timestep', 'id', 'd2w', 'angle', 'step', 'mother_ID', 'standard_length_cm_beginning_of_week', 'tank_compartment', 'tank_position', 'tank_system']]
     
@@ -475,11 +478,17 @@ def unifiy_table_timesteps(
     table_id_dict, 
     discard_nan_rows = False,
     cluster_sizes = ['005', '007', '010', '020', '050'],
+    clustering_methods = ['kmeans, umap'],
     output_file_name = None
 ):
     reordered_df_list = []
     for key in table_id_dict.keys():
-        reordered_df_element = reorder_entropy_and_rest_data_by_key(input_df, key, cluster_sizes)
+        reordered_df_element = reorder_entropy_and_rest_data_by_key(
+            input_df, 
+            key, 
+            cluster_sizes,
+            clustering_methods
+        )
         if reordered_df_element is not None:
             reordered_df_list.append(reordered_df_element)
         else:
@@ -487,8 +496,10 @@ def unifiy_table_timesteps(
 
     reordered_df = pd.concat(reordered_df_list, axis=0, ignore_index=True)
 
-    entropy_distinction_operation = lambda x:'entropy_'+x
-    entropy_distinction_list = list(map(entropy_distinction_operation, cluster_sizes))
+    entropy_distinction_list = []
+    for method in clustering_methods:
+        entropy_distinction_operation = lambda x: method+'_entropy_'+x
+        entropy_distinction_list += list(map(entropy_distinction_operation, cluster_sizes))
     if discard_nan_rows:
         reordered_df.dropna(
             subset=
@@ -539,7 +550,6 @@ def unified_table_flow(
     discard_nan_rows = False,
     output_file_name = None
 ):
-    # TODO: integrate used clustering_methods as list ['kmeans', 'umap']
     cov_entropy_df = build_and_unify_cov_and_entropy_tables_flow(
         parameters = parameters,
         fish_keys = fish_keys,
@@ -564,6 +574,7 @@ def unified_table_flow(
         table_id_dict,
         discard_nan_rows = discard_nan_rows,
         cluster_sizes= cluster_sizes,
+        clustering_methods = clustering_methods,
         output_file_name=output_file_name
     )
 

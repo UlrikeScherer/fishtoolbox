@@ -1,6 +1,7 @@
 
 import os
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 import numpy as np
 from random import sample
 from time import gmtime, strftime
@@ -407,6 +408,7 @@ def get_umap_scatter_figure_per_fk_day(
 
 def umap_scatter_figure_for_all(
         parameters, 
+        distinct_individuals = False,
         point_size = 15,
         alpha_transparency = 0.5,
         figure_color= 'red',
@@ -427,6 +429,8 @@ def umap_scatter_figure_for_all(
     affect the visual appearance.
     By using an `elements_restriction`, it is possible to only use a certain number 
     of samples instead of the whole dataset.
+    By using distinct_individuals, every present individual will be plotted with an own color, 
+    resulting in a scatter plot with possibilities to differentiate individuals.
     '''
 
     if overloaded_figure:
@@ -438,7 +442,11 @@ def umap_scatter_figure_for_all(
     days_list = get_days(parameters= parameters)
 
     elements_counter = 0
+    if distinct_individuals:
+        color = iter(cm.rainbow(np.linspace(0, 1, len(fishkey_list))))
     for fk in fishkey_list:
+        if distinct_individuals:
+            figure_color = next(color)
         for day in days_list:
             zVal_path = parameters.projectPath+f'/Projections/{fk}_{day}_pcaModes_uVals.mat'
             if os.path.exists(zVal_path):

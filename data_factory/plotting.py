@@ -443,7 +443,7 @@ def umap_scatter_figure_for_all(
 
     elements_counter = 0
     if distinct_individuals:
-        color = iter(cm.rainbow(np.linspace(0, 1, len(fishkey_list))))
+        color = iter(cm.Pastel1(np.linspace(0, 1, len(fishkey_list))))
     for fk in fishkey_list:
         if distinct_individuals:
             figure_color = next(color)
@@ -485,6 +485,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         fish_key,
         day,
         mode = 'clusters', 
+        include_boundaries = True,
         trajectory_color = 'red',
         data_restriction= None,
         data_restriction_additional = None,
@@ -525,15 +526,16 @@ def plot_umap_trajectories_and_watershed_characteristics(
             plot_figure = False
         )
 
-        get_watershed_boundaries_figure(
-            boundaries_embedding= wshed_dict['wbounds'],
-            extent_factor= wshed_dict['xx'][0][-1],
-            original_figure_width= wshed_dict['density'].shape[0],
-            axis_limit_tuple = axis_limit_tuple,
-            overloaded_figure= (fig,ax),
-            include_axis_visualization = False,
-            plot_figure = False
-        )
+        if include_boundaries:
+            get_watershed_boundaries_figure(
+                boundaries_embedding= wshed_dict['wbounds'],
+                extent_factor= wshed_dict['xx'][0][-1],
+                original_figure_width= wshed_dict['density'].shape[0],
+                axis_limit_tuple = axis_limit_tuple,
+                overloaded_figure= (fig,ax),
+                include_axis_visualization = False,
+                plot_figure = False
+            )
 
     get_umap_trajectories_figure(
         parameters = parameters,

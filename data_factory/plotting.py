@@ -82,7 +82,7 @@ def plot_area(area_box, ax):
     ax.plot(*area_box.T)
     
     
-def ethnogram_of_clusters(parameters, clusters, start_time=0, end_time=8*(60**2)*5, fish_key="", day="",rows=4, write_fig=False, name_append=""):
+def ethogram_of_clusters(parameters, clusters, start_time=0, end_time=8*(60**2)*5, fish_key="", day="",rows=4, write_fig=False, name_append=""):
     # f2min = (60**2)*5 # conversion factor for hours of end_time to the respective data_points 
     wregs = clusters[start_time:end_time]
     len_half = wregs.shape[0]//rows
@@ -151,23 +151,16 @@ def get_umap_density_figure(
 
     if cmap == 'default':
         cmap = mmpy.gencmap()
-    # cmap_new = plt.cm.YlOrBr
-    # cmap_new.set_under('white')
-    # ax.imshow(
-    #     X= umap_embedding,
-    #     extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
-    #     origin='lower', 
-    #     cmap=cmap_new
-    # )
+    
     # Create a sample data range from 0 to 1
     data_range = np.linspace(0, 1, 256)
 
-    # Create the original Viridis colormap
+    # adjustment of the original colormap within the predefined bounds
     my_YlOrBr = plt.cm.YlOrBr(data_range)
 
     # Define the subset of colors you want
-    start_index = 0  # Adjust the start index as needed
-    end_index = 100   # Adjust the end index as needed
+    start_index = 0  
+    end_index = 100  
 
     # Extract the subset of colors
     subset_colors = my_YlOrBr[start_index:end_index]
@@ -229,13 +222,6 @@ def get_watershed_boundaries_figure(
         fig, ax = overloaded_figure
     else: 
         fig, ax = plt.subplots()
-        
-    # ax.scatter(
-    #     x=bounds_aug_x_new, 
-    #     y=bounds_aug_y_new, 
-    #     color='k', 
-    #     s=0.1
-    # )
 
     ax.scatter(
         x=bounds_aug_x_new, 
@@ -378,16 +364,6 @@ def get_umap_trajectories_figure(
         solid_capstyle = "butt",
         linewidth = 1
     )
-
-    # # plotting each line individually to distinguish overlaying lines with alpha-transparency
-    # for i in range(0, len(zVals) - 1):
-    #     ax.plot(
-    #         [zVals[i,0], zVals[i+1,0]], [zVals[i,1], zVals[i+1,1]],
-    #         color=figure_color,
-    #         alpha = alpha_transparency,
-    #         solid_capstyle = "butt",
-    #         linewidth = 0.5
-    #     )
 
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])

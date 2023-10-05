@@ -1,6 +1,7 @@
 
 import os
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from matplotlib.pyplot import cm
 import numpy as np
 from random import sample
@@ -150,11 +151,38 @@ def get_umap_density_figure(
 
     if cmap == 'default':
         cmap = mmpy.gencmap()
+    # cmap_new = plt.cm.YlOrBr
+    # cmap_new.set_under('white')
+    # ax.imshow(
+    #     X= umap_embedding,
+    #     extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
+    #     origin='lower', 
+    #     cmap=cmap_new
+    # )
+    # Create a sample data range from 0 to 1
+    data_range = np.linspace(0, 1, 256)
+
+    # Create the original Viridis colormap
+    my_YlOrBr = plt.cm.YlOrBr(data_range)
+
+    # Define the subset of colors you want
+    start_index = 0  # Adjust the start index as needed
+    end_index = 100   # Adjust the end index as needed
+
+    # Extract the subset of colors
+    subset_colors = my_YlOrBr[start_index:end_index]
+
+    # Create a custom colormap using the subset of colors
+    custom_cmap = mcolors.ListedColormap(subset_colors)
+    custom_cmap.set_under('white')
+
     ax.imshow(
         X= umap_embedding,
         extent=(-extent_factor, extent_factor, -extent_factor, extent_factor), 
         origin='lower', 
-        cmap=cmap
+        cmap=custom_cmap,
+        vmin = 0.000005,
+        vmax = 0.01290888073184956
     )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
@@ -202,11 +230,18 @@ def get_watershed_boundaries_figure(
     else: 
         fig, ax = plt.subplots()
         
+    # ax.scatter(
+    #     x=bounds_aug_x_new, 
+    #     y=bounds_aug_y_new, 
+    #     color='k', 
+    #     s=0.1
+    # )
+
     ax.scatter(
         x=bounds_aug_x_new, 
         y=bounds_aug_y_new, 
-        color='k', 
-        s=0.1
+        color='gray', 
+        s=0.05
     )
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
@@ -298,7 +333,8 @@ def get_umap_trajectories_figure(
         data_restriction = None,
         data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
-        overloaded_figure=None, 
+        alpha_transparency = None,
+        overloaded_figure = None, 
         include_axis_visualization = False, 
         plot_figure = False
     ) -> plt.figure:
@@ -336,9 +372,23 @@ def get_umap_trajectories_figure(
         fig, ax = plt.subplots()
         
     ax.plot(
-        zVals[:,0], zVals[:,1], 
-        color=figure_color
+        zVals[:,0], zVals[:,1],
+        color=figure_color,
+        alpha = alpha_transparency,
+        solid_capstyle = "butt",
+        linewidth = 1
     )
+
+    # # plotting each line individually to distinguish overlaying lines with alpha-transparency
+    # for i in range(0, len(zVals) - 1):
+    #     ax.plot(
+    #         [zVals[i,0], zVals[i+1,0]], [zVals[i,1], zVals[i+1,1]],
+    #         color=figure_color,
+    #         alpha = alpha_transparency,
+    #         solid_capstyle = "butt",
+    #         linewidth = 0.5
+    #     )
+
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
     if include_axis_visualization:
@@ -409,10 +459,12 @@ def get_umap_scatter_figure_per_fk_day(
 def umap_scatter_figure_for_all(
         parameters, 
         distinct_individuals = False,
+        single_plot_for_every_individual = False,
         point_size = 15,
         alpha_transparency = 0.5,
         figure_color= 'red',
-        data_restriction = None, 
+        data_restriction = None,
+        data_restriction_days = None, 
         elements_restriction = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
@@ -425,6 +477,10 @@ def umap_scatter_figure_for_all(
     by following a `data_restriction` rule, the following rules 
     are supported and have to be formulated in a dictionary
     >>> data_restriction: {'limit': 200} or {'nth_value': 50}
+    If the number of plotted days should be limited to a specific time-range, this can be
+    specified using the parameter (e.g. for the second week, day 6-10)
+    >>> data_restriction_days: ['20210916_060000', '20210917_060000', '20210918_060000', '20210919_060000',
+    '20210920_060000','20211102_060000', '20211103_060000', '20211104_060000', '20211105_060000', '20211106_060000']
     the arguments `point_size` and `alpha_transparency` directly
     affect the visual appearance.
     By using an `elements_restriction`, it is possible to only use a certain number 
@@ -432,6 +488,9 @@ def umap_scatter_figure_for_all(
     By using distinct_individuals, every present individual will be plotted with an own color, 
     resulting in a scatter plot with possibilities to differentiate individuals.
     '''
+
+    if single_plot_for_every_individual:
+        individual_plot_dict = {}
 
     if overloaded_figure:
         fig, ax = overloaded_figure
@@ -443,11 +502,18 @@ def umap_scatter_figure_for_all(
 
     elements_counter = 0
     if distinct_individuals:
-        color = iter(cm.Pastel1(np.linspace(0, 1, len(fishkey_list))))
+        color = iter(cm.tab20c(np.linspace(0, 1, len(fishkey_list))))
     for fk in fishkey_list:
+        # print(f'fk: {fk}')
         if distinct_individuals:
             figure_color = next(color)
+        if single_plot_for_every_individual:
+            fig, ax = plt.subplots()
         for day in days_list:
+            # print(f'\tday: {day}')
+            if data_restriction_days is not None:
+                if day not in data_restriction_days:
+                    continue
             zVal_path = parameters.projectPath+f'/Projections/{fk}_{day}_pcaModes_uVals.mat'
             if os.path.exists(zVal_path):
                 elements_counter += 1
@@ -463,6 +529,8 @@ def umap_scatter_figure_for_all(
                     data_restriction= data_restriction,
                     overloaded_figure = (fig, ax)
                 )
+        if single_plot_for_every_individual:
+            individual_plot_dict[str(fk)] = [fig, ax]
     ax.set_xlim(axis_limit_tuple[0])
     ax.set_ylim(axis_limit_tuple[1])
     if include_axis_visualization:
@@ -476,6 +544,8 @@ def umap_scatter_figure_for_all(
         )
     if plot_figure:
         fig.show()
+    if single_plot_for_every_individual:
+        return individual_plot_dict
     return fig, ax
 
 
@@ -549,6 +619,103 @@ def plot_umap_trajectories_and_watershed_characteristics(
         include_axis_visualization = False, 
         plot_figure = False
     )
+
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+def plot_multiple_umap_trajectories_and_watershed_characteristics(
+        parameters,
+        wshed_path,
+        identifier_dict,
+        mode = 'clusters', 
+        include_boundaries = True,
+        data_restriction= None,
+        data_restriction_additional = None,
+        axis_limit_tuple = ([-100, 100], [-100, 100]),
+        trajectory_alpha_transparency = 0.5,
+        include_axis_visualization= False, 
+        cmap = 'default',
+        save_pdf_path: os.path = None,
+        plot_figure= False
+    ) -> plt.figure:
+    ''' 
+    plots umap-trajectories of multiple fishes for each a specific day and,
+    depending on the mode, with either `clusters` a colorized overview of different 
+    clusters with cluster-ids or a combination of the umap-density and the 
+    watershed-cluster boundaries. 
+    the number of trajectories can be limited using the `data_restriction_limit` flag.
+    The individuals have to be indicated using the `identifier_dict` in a way, s.t. 
+    the `fish_key` resembles the key of an object and the value is an embedding of 
+    another object including the respective `day` and the `trajectory_color`.
+    ```identifier_dict = {
+        'block2_23484201_back': {
+            'day': '20211112_060000',
+            'trajectory_color': 'red'
+            }, ...
+        }
+    '''
+    wshed_dict = load_watershed_file(wshed_path)
+    
+
+
+    fig, ax = plt.subplots()
+    if mode == 'clusters':
+        get_watershed_clusters_figure(cluster_embeddings = wshed_dict['LL'], 
+            extent_factor = wshed_dict['xx'][0][-1], 
+            original_figure_width = wshed_dict['density'].shape[0], 
+            axis_limit_tuple = axis_limit_tuple,
+            overloaded_figure = (fig, ax), 
+            include_axis_visualization = False, 
+            cmap= cmap,
+            plot_figure = False
+        )
+    else:
+        get_umap_density_figure(
+            umap_embedding = wshed_dict['density'],
+            extent_factor = wshed_dict['xx'][0][-1],
+            axis_limit_tuple = axis_limit_tuple,
+            overloaded_figure = (fig,ax),
+            include_axis_visualization = False,
+            cmap=cmap,
+            plot_figure = False
+        )
+
+        if include_boundaries:
+            get_watershed_boundaries_figure(
+                boundaries_embedding= wshed_dict['wbounds'],
+                extent_factor= wshed_dict['xx'][0][-1],
+                original_figure_width= wshed_dict['density'].shape[0],
+                axis_limit_tuple = axis_limit_tuple,
+                overloaded_figure= (fig,ax),
+                include_axis_visualization = False,
+                plot_figure = False
+            )
+
+    for fish_key, fish_values in identifier_dict.items():
+        get_umap_trajectories_figure(
+            parameters = parameters,
+            fish_key = fish_key,
+            day = fish_values['day'],
+            figure_color= fish_values['trajectory_color'],
+            data_restriction= data_restriction,
+            data_restriction_additional= data_restriction_additional,
+            axis_limit_tuple = axis_limit_tuple,
+            alpha_transparency = trajectory_alpha_transparency,
+            overloaded_figure = (fig,ax),
+            include_axis_visualization = False, 
+            plot_figure = False
+        )
 
     if include_axis_visualization:
         ax.axis('on')

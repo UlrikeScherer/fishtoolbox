@@ -1,5 +1,6 @@
 
 import os
+from collections import Counter
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.pyplot import cm
@@ -11,7 +12,7 @@ import motionmapperpy as mmpy
 from clustering.clustering import boxplot_characteristics_of_cluster
 from config import BLOCK
 from data_factory.plot_helpers import remove_spines
-from .processing import get_regions_for_fish_key, load_zVals_concat
+from .processing import get_regions_for_fish_key, load_zVals_concat, load_clusters_concat
 from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
@@ -124,6 +125,128 @@ def plot_transition_rates(clusters, filename, cluster_remap=[(0,1)]):
                               output=filename, 
                               cmap=get_color_map(n_clusters))
     return G
+
+def create_ethogram_for_individual_colormap_changes(
+        parameters, 
+        high_entropy_ind_dict: dict, 
+        low_entropy_ind_dict: dict, 
+        start_time: int, 
+        end_time: int, 
+        cluster_number: int, 
+        fig_parent_dir: str
+    ):
+    ''' 
+    Creation of an ethogrm with individual colormap changes, 
+    the maximum number of cluster occurrences for one individual
+    sets the maximum color-value in a customized colormap
+
+    high_entropy_ind_dict = {'block1_23520289_front': {'day4': '20210914_060000', 'day5': '20210915_060000'}, 
+                    'block1_23520270_front': {'day4': '20210914_060000', 'day5': '20210915_060000'}, 
+                    'block2_23520278_front': {'day4': '20211105_060000', 'day5': '20211106_060000'}}
+    low_entropy_ind_dict = { 'block2_23484201_back': {'day4': '20211105_060000', 'day5': '20211106_060000'},
+                    'block2_23520266_back': {'day4': '20211105_060000', 'day5': '20211106_060000'},
+                    'block1_23520264_back': {'day4': '20210914_060000', 'day5': '20210915_060000'}}
+    '''
+    ind_xy = {}
+    occ_list = []
+    # for all individuals in dicts: get xy values, get highest occurrence per y-list
+    for ind in list(low_entropy_ind_dict.keys()) + list(high_entropy_ind_dict.keys()):
+        print(ind)
+        x,y, wregs = get_xy_for_individual_per_timerange(parameters, ind, start_time = start_time, end_time = end_time, cluster_number = cluster_number)
+        highest_occ = get_highest_occ_p_y_list(y)
+        ind_xy[str(ind)] = x,y
+        occ_list.append(highest_occ)
+
+    overall_highest_occ = max(occ_list)
+    adjusted_colormap = get_discr_colormap_for_max_occ(overall_highest_occ)
+    # for all ind: generate ethogram with color gradient
+    for ind in list(low_entropy_ind_dict.keys()) + list(high_entropy_ind_dict.keys()):
+        print(f'creating ethogram for individual {ind}')
+        fig_name = f'ethogram_entropy_{ind}.pdf'
+        y_occ_dict = {key: 0 for key in range(-1, 21, 1)}
+
+        x = ind_xy[str(ind)][0]
+        y = ind_xy[str(ind)][1]
+        # Create a line plot with each data point colored differently
+        plt.figure(figsize=(400,30))
+        plt.labelsize = 'large'
+        for i in range(0,len(x)):
+            y_occ_dict[y[i]] += 1
+            plt.plot(x[i], y[i], '|', markersize = 70, color=adjusted_colormap[y_occ_dict[y[i]]], label=f'Data Point {i+1}')
+        max_region_number = wregs.max() + 1
+        x_limit = end_time - start_time
+        x_tick_label_count = 18000
+        xticklocs = [i for i in range(0,len(x), x_tick_label_count)]
+        xticklabels = [int(i/x_tick_label_count) for i in range(0,len(x), x_tick_label_count)]
+        yticklocs = [i for i in range(1, max_region_number, 1)]
+        yticklabels = [f'Region {i}' for i in range(1, max_region_number, 1)]
+        plt.xticks(xticklocs, xticklabels, fontsize = 70)
+        plt.yticks(yticklocs, yticklabels, fontsize= 70)
+        plt.ylim(0, max_region_number) 
+        plt.xlim(0, x_limit)
+        plt.gca().invert_yaxis()
+        fig_path = os.path.join(
+            fig_parent_dir,
+            fig_name
+        )
+        plt.savefig(fig_path)
+        print(f'\tfigure saved in: {fig_path}')
+
+
+def get_xy_for_individual_per_timerange(
+        parameters, 
+        individual: str,
+        start_time: int, 
+        end_time: int, 
+        cluster_number: int
+        ):
+    ''' calculates the respective x and y values for a specific individual,
+    which correlates to the respective string representation of its fish_key.
+    Returns the x and y values, as well as the wreg-array.
+    '''
+    individual = individual
+    clusters = load_clusters_concat(parameters, individual, k= cluster_number)
+    start_time = start_time
+    end_time = end_time
+    rows = 1
+    wregs = clusters[start_time:end_time]
+    len_half = wregs.shape[0]//rows
+    ethogram = np.zeros((wregs.max(), len(wregs)))
+    for wreg in range(1, wregs.max()+1):
+        ethogram[wreg-1, np.where(wregs==wreg)[0]] = 1.0
+    ethogram = np.split(ethogram.T, np.array([len_half*i for i in range(1,rows)]))
+    x = []
+    y = []
+    for timestep, row in enumerate(list(ethogram[0])):
+        # Find the index of the 1-hot encoding (value of 1)
+        exists = np.any(row == 1)
+        if exists:
+            index = np.where(row == 1)[0][0]
+            x.append(timestep)
+            y.append(index+1)
+        else:
+            index = -1
+    return x,y, wregs
+
+
+def get_highest_occ_p_y_list(y: list)->int:
+    ''' returns the highest number of cluster-occurrences per individual
+    overloaded by the y-list of an individual
+    '''
+    element_counts = Counter(y)
+    most_common = element_counts.most_common(1)[0]  
+    most_common_element, most_common_count = most_common
+    print(f"Most common element: {most_common_element}, Count: {most_common_count}")
+    return most_common_count
+
+
+def get_discr_colormap_for_max_occ(max_occ: int):
+    ''' returns an adjusted colormap with color changes based on 
+    an interval of `n` discrete values from 0 to 1, 
+    `n` relates directly with `max_occ + 1`
+    '''
+    colors = plt.cm.viridis(np.linspace(0, 1, max_occ + 1))
+    return colors
 
 
 def load_watershed_file(wshed_path) -> dict:

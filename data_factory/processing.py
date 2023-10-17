@@ -15,7 +15,6 @@ import numpy as np
 import hdf5storage 
 from fishproviz.utils import csv_of_the_day
 from fishproviz.utils.utile import get_camera_pos_keys, get_days_in_order, start_time_of_day_to_seconds
-from config import BLOCK
 WAVELET = 'wavelet'
 clusterStr = 'clusters'
 

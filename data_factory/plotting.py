@@ -159,6 +159,7 @@ def create_ethogram_for_individual_colormap_changes(
 
     overall_highest_occ = max(occ_list)
     adjusted_colormap = get_discr_colormap_for_max_occ(overall_highest_occ)
+    ethogram_dict = {}
     # for all ind: generate ethogram with color gradient
     for ind in list(low_entropy_ind_dict.keys()) + list(high_entropy_ind_dict.keys()):
         print(f'creating ethogram for individual {ind}')
@@ -168,11 +169,11 @@ def create_ethogram_for_individual_colormap_changes(
         x = ind_xy[str(ind)][0]
         y = ind_xy[str(ind)][1]
         # Create a line plot with each data point colored differently
-        plt.figure(figsize=(400,30))
-        plt.labelsize = 'large'
+        fig, ax = plt.subplots(figsize=(400, 30))
+        ax.tick_params(axis='both', labelsize='large')
         for i in range(0,len(x)):
             y_occ_dict[y[i]] += 1
-            plt.plot(x[i], y[i], '|', markersize = 70, color=adjusted_colormap[y_occ_dict[y[i]]], label=f'Data Point {i+1}')
+            ax.plot(x[i], y[i], '|', markersize = 70, color=adjusted_colormap[y_occ_dict[y[i]]], label=f'Data Point {i+1}')
         max_region_number = wregs.max() + 1
         x_limit = end_time - start_time
         x_tick_label_count = 18000
@@ -180,18 +181,19 @@ def create_ethogram_for_individual_colormap_changes(
         xticklabels = [int(i/x_tick_label_count) for i in range(0,len(x), x_tick_label_count)]
         yticklocs = [i for i in range(1, max_region_number, 1)]
         yticklabels = [f'Region {i}' for i in range(1, max_region_number, 1)]
-        plt.xticks(xticklocs, xticklabels, fontsize = 70)
-        plt.yticks(yticklocs, yticklabels, fontsize= 70)
-        plt.ylim(0, max_region_number) 
-        plt.xlim(0, x_limit)
-        plt.gca().invert_yaxis()
+        ax.set_xticks(xticklocs, xticklabels, fontsize = 70)
+        ax.set_yticks(yticklocs, yticklabels, fontsize= 70)
+        ax.set_ylim(0, max_region_number) 
+        ax.set_xlim(0, x_limit)
+        ax.invert_yaxis()
         fig_path = os.path.join(
             fig_parent_dir,
             fig_name
         )
-        plt.savefig(fig_path)
+        fig.savefig(fig_path)
         print(f'\tfigure saved in: {fig_path}')
-
+        ethogram_dict[str(ind)] = fig,ax
+    return ethogram_dict
 
 def get_xy_for_individual_per_timerange(
         parameters, 

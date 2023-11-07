@@ -8,6 +8,9 @@ import numpy as np
 from random import sample
 from time import gmtime, strftime
 import hdf5storage
+import pandas as pd
+import datashader as ds
+from datashader.mpl_ext import dsshow
 import motionmapperpy as mmpy
 from clustering.clustering import boxplot_characteristics_of_cluster
 from config import BLOCK
@@ -520,6 +523,7 @@ def get_umap_scatter_figure_per_fk_day(
         >>> data_restriction: {'limit': 200} or {'nth_value': 50} or None
         the arguments `point_size` and `alpha_transparency` directly
         affect the visual appearance
+        returns a figure and axis, and the respective x and y values each as a list
     '''
     zVals = load_zVals_concat(
         parameters= parameters,
@@ -539,6 +543,7 @@ def get_umap_scatter_figure_per_fk_day(
     else: 
         fig, ax = plt.subplots()
         
+    x, y = zVals[:,0], zVals[:,1] 
     ax.scatter(
         x = zVals[:,0], 
         y = zVals[:,1], 
@@ -554,7 +559,7 @@ def get_umap_scatter_figure_per_fk_day(
         ax.axis('off')
     if plot_figure:
         fig.show()
-    return fig, ax
+    return fig, ax, x,y
 
 
 def umap_scatter_figure_for_all(
@@ -570,6 +575,7 @@ def umap_scatter_figure_for_all(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         overloaded_figure=None, 
         include_axis_visualization = False, 
+        scatter_with_density = False,
         save_pdf_path: os.path = None,
         plot_figure = False
     ) -> plt.figure:
@@ -610,6 +616,9 @@ def umap_scatter_figure_for_all(
             figure_color = next(color)
         if single_plot_for_every_individual:
             fig, ax = plt.subplots()
+        if scatter_with_density:
+            x_list, y_list = [], []
+
         for day in days_list:
             # print(f'\tday: {day}')
             if data_restriction_days is not None:
@@ -620,16 +629,50 @@ def umap_scatter_figure_for_all(
                 elements_counter += 1
                 if (elements_restriction is not None) and (elements_counter > elements_restriction):
                     return (fig, ax)
-                fig, ax = get_umap_scatter_figure_per_fk_day(
-                    parameters= parameters,
-                    fish_key= fk,
-                    day= day,
-                    point_size= point_size,
-                    alpha_transparency= alpha_transparency,
-                    figure_color= figure_color,
-                    data_restriction= data_restriction,
-                    overloaded_figure = (fig, ax)
+                if scatter_with_density:
+                    _fig, _ax, xVals, yVals = get_umap_scatter_figure_per_fk_day(
+                        parameters= parameters,
+                        fish_key= fk,
+                        day= day,
+                        point_size= point_size,
+                        alpha_transparency= alpha_transparency,
+                        figure_color= figure_color,
+                        data_restriction= data_restriction,
+                    )
+                    x_list.append(xVals)
+                    y_list.append(yVals)
+
+                else: 
+                    fig, ax, _x, _y= get_umap_scatter_figure_per_fk_day(
+                        parameters= parameters,
+                        fish_key= fk,
+                        day= day,
+                        point_size= point_size,
+                        alpha_transparency= alpha_transparency,
+                        figure_color= figure_color,
+                        data_restriction= data_restriction,
+                        overloaded_figure = (fig, ax)
+                    )
+        if scatter_with_density:
+            fig, ax = plt.subplots()
+            df = pd.DataFrame(
+                dict(
+                    x=x_list, 
+                    y=y_list
                 )
+            )
+            dsartist = dsshow(
+                df,
+                ds.Point("x", "y"),
+                ds.count(),
+                vmin=0,
+                vmax=35,
+                norm="linear",
+                aspect="auto",
+                ax=ax,
+            )
+            # TODO: fix individual density plots
+
         if single_plot_for_every_individual:
             individual_plot_dict[str(fk)] = [fig, ax]
     ax.set_xlim(axis_limit_tuple[0])
@@ -663,6 +706,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         axis_limit_tuple = ([-100, 100], [-100, 100]),
         include_axis_visualization= False, 
         cmap = 'default',
+        trajectory_alpha_transparency = None,
         save_pdf_path: os.path = None,
         plot_figure= False
     ) -> plt.figure:
@@ -715,6 +759,7 @@ def plot_umap_trajectories_and_watershed_characteristics(
         data_restriction= data_restriction,
         data_restriction_additional= data_restriction_additional,
         axis_limit_tuple = axis_limit_tuple,
+        alpha_transparency = trajectory_alpha_transparency,
         figure_color= trajectory_color,
         overloaded_figure = (fig,ax),
         include_axis_visualization = False, 
@@ -744,7 +789,7 @@ def plot_multiple_umap_trajectories_and_watershed_characteristics(
         data_restriction= None,
         data_restriction_additional = None,
         axis_limit_tuple = ([-100, 100], [-100, 100]),
-        trajectory_alpha_transparency = 0.5,
+        trajectory_alpha_transparency = None,
         include_axis_visualization= False, 
         cmap = 'default',
         save_pdf_path: os.path = None,

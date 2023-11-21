@@ -17,7 +17,7 @@ import motionmapperpy as mmpy
 from clustering.clustering import boxplot_characteristics_of_cluster
 from config import BLOCK
 from data_factory.plot_helpers import remove_spines
-from .processing import get_regions_for_fish_key, load_zVals_concat, load_clusters_concat, return_normalization_func
+from .processing import get_regions_for_fish_key, load_zVals_concat, load_clusters_concat, load_summerized_data, return_normalization_func
 from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
@@ -1004,6 +1004,41 @@ def plot_basic_features_and_frequency_activations(
         fig_2.savefig(frequency_activations_save_pdf_path)
     
     return fig, fig_2
+
+
+def plot_physical_trajectories(
+    parameters,
+    wshed_dict,
+    fk,
+    day,
+    interval = [54000,55500],
+    save_pdf_path: os.path = None,
+    plot_figure= False
+):
+    '''
+    plots the trajectory in physical space for one individual, indicated with `fk`
+    for a specific `day` given a certain `interval`.
+    '''
+    sum_data = load_summerized_data(
+        wshed_dict,
+        parameters, 
+        fk,
+        day
+    )
+    positions = sum_data['positions']
+    area_box = sum_data['area']
+    fig, ax = plt.subplots(figsize=(10,10))
+
+    fig.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+    area_box = np.concatenate((area_box, [area_box[0]]))
+    ax.plot(*area_box.T, color="black")
+    ax.axis('off')
+    (line,) = ax.plot([],[], "-o", markersize=3, color="blue")
+    line.set_data(*positions[interval[0]:interval[1]].T)
+    if save_pdf_path is not None:
+        fig.savefig(save_pdf_path)
+    return fig, ax
+
 
 def plot_multiple_umap_trajectories_and_watershed_characteristics(
         parameters,

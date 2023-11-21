@@ -17,7 +17,7 @@ import motionmapperpy as mmpy
 from clustering.clustering import boxplot_characteristics_of_cluster
 from config import BLOCK
 from data_factory.plot_helpers import remove_spines
-from .processing import get_regions_for_fish_key, load_zVals_concat, load_clusters_concat
+from .processing import get_regions_for_fish_key, load_zVals_concat, load_clusters_concat, return_normalization_func
 from .utils import pointsInCircum, get_individuals_keys, get_days
 from clustering.transitions_cluster import transition_rates, draw_transition_graph
 
@@ -899,6 +899,111 @@ def plot_umap_trajectories_and_watershed_characteristics(
     if plot_figure:
         fig.show()
     return fig, ax
+
+
+def plot_basic_features_and_frequency_activations(
+    parameters,
+    projection_file,
+    interval = [54000, 55500],
+    normalize_projections = False,
+    original_features_save_pdf_path = None,
+    sampling_frequency = 5,
+    number_of_periods = 25,
+    min_frequency = 0.01,
+    max_frequency = 2.5,
+    numProcessors=10, 
+    useGPU = -1,
+    frequency_activations_save_pdf_path = None,
+    ):
+    '''
+    Plots the three basic features (step length, turning angle, distance to the wall)
+    and their respective activations resulting from a morlet transformation for the wavelet
+    features. The `number_of_periods` should be equal 25 with a `sampling_frequency` of 5 
+    and a `min_frequency` of 0.01 and `max_frequency` of 2.5 to match previous computations.
+    The activations can be plotted after normalization if `normalize_projections` is set to True.
+    '''
+    parameters.projectionDirectory = parameters.projectPath + '/Projections'
+    projections = np.array(hdf5storage.loadmat(projection_file, variable_names=['projections'])['projections'])
+
+    if normalize_projections:
+        parameters.normalize_func = return_normalization_func(parameters)
+        projections = parameters.normalize_func(projections)
+
+
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize = (20, 10))
+
+    x1 = projections[:,0][interval[0]:interval[1]]
+    x2 = projections[:,1][interval[0]:interval[1]]
+    x3 = projections[:,2][interval[0]:interval[1]]
+
+    y = np.arange(x1.shape[0])
+
+    x_ticks_numbers = int((interval[1] - interval[0])/300 + 1)
+    x_ticks_location_list = list(map(lambda x: x * 300, range(0, x_ticks_numbers)))
+    x_ticks_label_list = list(map(lambda x: x * 60, range(0, x_ticks_numbers)))
+
+    ax1.plot(y, x1, c='black')
+    ax1.set_title('PC_1 over time')
+    ax2.plot(y, x2, c='black')
+    ax2.set_title('PC_2 over time')
+    ax3.plot(y, x3, c='black')
+    ax3.set_title('PC_3 over time')
+
+    ax1.set_xlim(0,interval[1]-interval[0])
+    ax2.set_xlim(0,interval[1]-interval[0])
+    ax3.set_xlim(0,interval[1]-interval[0])
+
+    ax1.set_xticks(x_ticks_location_list, x_ticks_label_list)
+    ax2.set_xticks(x_ticks_location_list, x_ticks_label_list)
+    ax3.set_xticks(x_ticks_location_list, x_ticks_label_list)
+
+    if original_features_save_pdf_path is not None:
+        fig.savefig(original_features_save_pdf_path)
+
+    # wavelet transformation
+
+    amplitudes, f = mmpy.findWavelets(
+        projections = projections, 
+        pcaModes = 3, 
+        omega0 = 5, 
+        numPeriods = number_of_periods, 
+        samplingFreq = sampling_frequency, 
+        maxF = max_frequency, 
+        minF = min_frequency, 
+        numProcessors = numProcessors, 
+        useGPU = useGPU
+    )
+
+    fig_2, (ax1_2, ax2_2, ax3_3) = plt.subplots(3, 1, figsize = (20, 10))
+
+    x1_wavelet = amplitudes[:,:25][interval[0]:interval[1]]
+    x2_wavelet = amplitudes[:,25:50][interval[0]:interval[1]]
+    x3_wavelet = amplitudes[:,50:75][interval[0]:interval[1]]
+
+    im1 = ax1_2.imshow(x1_wavelet.T, aspect='auto')
+    ax1_2.set_yticks(np.arange(x1_wavelet.T.shape[0]))
+    ax1_2.invert_yaxis()
+    ax1_2.set_title('Wavelet Transformations for PC_1')
+    im2 = ax2_2.imshow(x2_wavelet.T, aspect='auto')
+    ax2_2.set_yticks(np.arange(x2_wavelet.T.shape[0]))
+    ax2_2.invert_yaxis()
+    ax2_2.set_title('Wavelet Transformations for PC_2')
+    im3 = ax3_3.imshow(x3_wavelet.T, aspect='auto')
+    ax3_3.set_yticks(np.arange(x3_wavelet.T.shape[0]))
+    ax3_3.invert_yaxis()
+    ax3_3.set_title('Wavelet Transformations for PC_3')
+
+    ax1_2.set_xlim(0,interval[1]-interval[0])
+    ax2_2.set_xlim(0,interval[1]-interval[0])
+    ax3_3.set_xlim(0,interval[1]-interval[0])
+    ax1_2.set_xticks(x_ticks_location_list, x_ticks_label_list)
+    ax2_2.set_xticks(x_ticks_location_list, x_ticks_label_list)
+    ax3_3.set_xticks(x_ticks_location_list, x_ticks_label_list)
+
+    if frequency_activations_save_pdf_path is not None:
+        fig_2.savefig(frequency_activations_save_pdf_path)
+    
+    return fig, fig_2
 
 def plot_multiple_umap_trajectories_and_watershed_characteristics(
         parameters,

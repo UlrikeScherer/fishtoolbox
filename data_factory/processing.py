@@ -2,6 +2,7 @@ import os, glob
 import time
 import pandas as pd
 import multiprocessing as mp
+from tqdm import tqdm
 
 from .excluded_days import get_excluded_days, block1_remove
 from .utils import get_days, set_parameters
@@ -97,7 +98,8 @@ def load_trajectory_data(parameters,fk="", day=""):
     data_by_day = []
     pfile = glob.glob(parameters.projectPath+f'/Projections/{fk}*_{day}*_pcaModes.mat')
     pfile.sort()
-    for f in pfile: 
+    print('loading trajectory data')
+    for f in tqdm(pfile): 
         data = hdf5storage.loadmat(f)
         data_by_day.append(data)
     return data_by_day

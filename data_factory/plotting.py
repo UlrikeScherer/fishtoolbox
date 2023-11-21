@@ -1,12 +1,14 @@
 
 import os
 from collections import Counter
+import random
+from random import sample
+from time import gmtime, strftime
+from tqdm import tqdm
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.pyplot import cm
-import numpy as np
-from random import sample
-from time import gmtime, strftime
 import hdf5storage
 import pandas as pd
 import datashader as ds
@@ -280,6 +282,7 @@ def get_umap_density_figure(
     if cmap == 'default':
         cmap = mmpy.gencmap()
     
+    # TODO: make cmap generation agnostic
     # Create a sample data range from 0 to 1
     data_range = np.linspace(0, 1, 256)
 
@@ -562,7 +565,7 @@ def get_umap_scatter_figure_per_fk_day(
     return fig, ax, x,y
 
 
-def umap_scatter_figure_for_all(
+def umap_scatter_figure_for_all_individuals_sorted(
         parameters, 
         distinct_individuals = False,
         single_plot_for_every_individual = False,
@@ -611,7 +614,6 @@ def umap_scatter_figure_for_all(
     if distinct_individuals:
         color = iter(cm.tab20c(np.linspace(0, 1, len(fishkey_list))))
     for fk in fishkey_list:
-        # print(f'fk: {fk}')
         if distinct_individuals:
             figure_color = next(color)
         if single_plot_for_every_individual:
@@ -620,7 +622,6 @@ def umap_scatter_figure_for_all(
             x_list, y_list = [], []
 
         for day in days_list:
-            # print(f'\tday: {day}')
             if data_restriction_days is not None:
                 if day not in data_restriction_days:
                     continue
@@ -671,7 +672,6 @@ def umap_scatter_figure_for_all(
                 aspect="auto",
                 ax=ax,
             )
-            # TODO: fix individual density plots
 
         if single_plot_for_every_individual:
             individual_plot_dict[str(fk)] = [fig, ax]
@@ -691,6 +691,126 @@ def umap_scatter_figure_for_all(
     if single_plot_for_every_individual:
         return individual_plot_dict
     return fig, ax
+
+
+def umap_scatter_figure_for_total_population(
+        parameters, 
+        point_size = 0.0001,
+        alpha_transparency = 1,
+        data_restriction = None,
+        cmap = plt.cm.gist_ncar,
+        axis_limit_tuple = ([-50, 75], [-50, 75]),
+        overloaded_figure=None, 
+        include_axis_visualization = False, 
+        save_pdf_path: os.path = None,
+        plot_figure = False
+    ) -> plt.figure:
+    '''
+    creates a scatter umap plot for the whole population with a randomized order 
+    of the sorted fishkeys. Results in a more heterogenous distribution of datapoints
+    without correlations of scatter-plotted region and the individuals entropy-value
+    color identifyable with its color-coding. 
+    Downsampling the number of datapoints is highly recommended to enhance runtime 
+    '''
+    print('run calculations for subsampling value: ', data_restriction['nth_value'])
+    print('get all embeddings')
+    fk_content_dict = {}
+    fishkey_list = get_individuals_keys(parameters= parameters)
+    days_list = get_days(parameters= parameters)
+    random.shuffle(fishkey_list)
+    for fk in tqdm(fishkey_list):
+        zVals_combined_list = []
+        for day in days_list:
+            zVal_path = parameters.projectPath+f'/Projections/{fk}_{day}_pcaModes_uVals.mat'
+            if os.path.exists(zVal_path):
+                zVals = load_zVals_concat(
+                    parameters= parameters,
+                    fk= fk,
+                    day= day
+                )['embeddings']
+                if data_restriction is not None:
+                    if 'limit' in data_restriction:
+                        zVals = zVals[0:data_restriction['limit']]
+                    elif 'nth_value' in data_restriction:
+                        zVals = zVals[0::data_restriction['nth_value']]
+                x, y = zVals[:,0], zVals[:,1] 
+                zVals_combined_list.extend(zVals)
+        fk_content_dict[str(fk)] = zVals_combined_list
+    combined_list = []
+    print('combine lists')
+    for k,v in fk_content_dict.items():
+        combined_list.extend(v)
+    x = list(enumerate(combined_list))
+    # generate dict of index assignments
+    fk_index_asgnm_dict = {}
+    current_index = 0
+    print('assign indices to all fks')
+    for idx, fk in tqdm(enumerate(fishkey_list)): 
+        fk_list_ending_idx = current_index + len(fk_content_dict[str(fk)])
+        fk_index_asgnm_dict[str(fk)] = list(map(lambda x: x, range(current_index, fk_list_ending_idx)))
+        current_index = fk_list_ending_idx
+
+    print('shuffle combined list')
+    random.shuffle(x)
+    indices, l = zip(*x)
+
+    # assign to every index an individual
+    print('assign fk to shuffeled list')
+    shuffled_individual_assignment_list = []
+    for idx, el in tqdm(x):
+        individual = [k for k, v in fk_index_asgnm_dict.items() if idx in v]
+        shuffled_individual_assignment_list.append(individual)
+        # color = cmap(gen(assigned_list))
+        # color_list.append(color)
+    # >color_idx_list = [0.1, 0.4, 0.8,...]
+    print('assign index to fk in shuffeled list')
+    fk_to_index_dict = {}
+    for idx, el in tqdm(enumerate(fk_content_dict.keys())):
+        fk_to_index_dict[str(el)] = idx
+    # vector of individual-identifier, directly corresponding with element key
+    print('generate indices list for colorings')
+    fk_ind_list = []
+    for el in tqdm(enumerate(shuffled_individual_assignment_list)):
+        curr_el = el[1][0]
+        fk_ind_list.append(fk_to_index_dict[str(curr_el)])
+
+    print('figure generation')
+    custom_cmap = adjust_cmap(cmap, len(fishkey_list))
+    fig, ax = plt.subplots()
+    ax.scatter(
+        x = [item[1][0] for item in x], 
+        y = [item[1][1] for item in x], 
+        s = point_size,
+        alpha = alpha_transparency,
+        c = fk_ind_list,
+        cmap= custom_cmap
+    )
+    ax.set_xlim(axis_limit_tuple[0])
+    ax.set_ylim(axis_limit_tuple[1])
+    
+    if include_axis_visualization:
+        ax.axis('on')
+    else:
+        ax.axis('off')
+    if save_pdf_path is not None:
+        fig.savefig(
+            fname = save_pdf_path, 
+            format = 'pdf'
+        )
+    if plot_figure:
+        fig.show()
+    return fig, ax
+
+
+def adjust_cmap(original_cmap, max_elements):
+    data_range = np.linspace(0, 1, max_elements)
+    my_cmap = original_cmap(data_range)
+    start_index = 0  
+    end_index = max_elements  
+    subset_colors = my_cmap[start_index:end_index]
+    custom_cmap = mcolors.ListedColormap(subset_colors)
+    custom_cmap.set_under('white')
+    return custom_cmap
 
 
 def plot_umap_trajectories_and_watershed_characteristics(

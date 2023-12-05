@@ -1,6 +1,7 @@
 
 *.pyc 
-notebooks/*.ipynb
+notebooks/**/**.ipynb
+.ipynb_checkpoints
 */.ipynb_checkpoints/*
 data_temp/
 
@@ -16,4 +17,3 @@ config.env
 
 .DS_Store
 notebooks/*.pdf*
-

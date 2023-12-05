@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from scipy.stats import entropy as entropy_m
 from matplotlib.animation import FuncAnimation
 # moviepy helps open the video files in Python
-from moviepy.editor import VideoClip, VideoFileClip
+from moviepy.editor import VideoClip, VideoFileClip, clips_array, vfx
 from moviepy.video.io.bindings import mplfig_to_npimage
 from data_factory.plasticity import compute_cluster_distribution
 from data_factory.plotting import get_umap_density_figure, get_watershed_boundaries_figure
@@ -93,6 +93,167 @@ def motion_video(wshedfile, parameters,fish_key, day, start=0, duration_seconds=
         os.makedirs(dir_v, exist_ok=True)
         anim.write_videofile(f'{dir_v}/{filename}{fish_key}_{day}.mp4', fps=10, audio=False, threads=1)
     return anim
+
+
+def motion_video_for_low_and_high_entropy_individuals(
+    wshedfile, 
+    parameters,
+    low_entropy_fk_day_dict,
+    high_entropy_fk_day_dict,
+    start = 0, 
+    duration_seconds = 1800, 
+    speedup_factor = 6,
+    fps = 30,
+    save=False, 
+    filename="", 
+    axis_limit_tuple = ([-50, 75], [-50, 75])
+    ): 
+    tqdm.tqdm._instances.clear()
+
+    anim_trajectories_low_entropy, anim_umap_low_entropy = motion_video_for_3_individuals(
+        wshedfile= wshedfile, 
+        parameters= parameters, 
+        fk_day_dict= low_entropy_fk_day_dict, 
+        start= start, 
+        duration_seconds= duration_seconds, 
+        axis_limit_tuple= axis_limit_tuple
+    )
+    anim_trajectories_high_entropy, anim_umap_high_entropy = motion_video_for_3_individuals(
+        wshedfile= wshedfile, 
+        parameters= parameters, 
+        fk_day_dict= high_entropy_fk_day_dict, 
+        start= start, 
+        duration_seconds= duration_seconds, 
+        axis_limit_tuple= axis_limit_tuple
+    )
+    clip_traj_low_entropy = anim_trajectories_low_entropy.resize((250,750))
+    clip_umap_low_entropy = anim_umap_low_entropy.resize((750,750))
+    low_entropy_clip = clips_array([[clip_traj_low_entropy, clip_umap_low_entropy]])
+
+    clip_traj_high_entropy = anim_trajectories_high_entropy.resize((250,750))
+    clip_umap_high_entropy = anim_umap_high_entropy.resize((750,750))
+    high_entropy_clip = clips_array([[clip_traj_high_entropy, clip_umap_high_entropy]])
+
+    combined_entropy_clips = clips_array([[low_entropy_clip, high_entropy_clip]])
+
+    combined_entropy_clips = combined_entropy_clips.set_fps(fps)
+    print("fps: {}".format(combined_entropy_clips.fps))
+    # speedup
+    combined_entropy_clip_final = combined_entropy_clips.fx(vfx.speedx, speedup_factor)
+    print("fps: {}".format(combined_entropy_clip_final.fps))
+
+    if save:
+        combined_entropy_clip_final.write_videofile(f'combined_entropy_speedup_{speedup_factor}.mp4', audio=None, threads=10)
+    return combined_entropy_clip_final
+
+
+def motion_video_for_3_individuals(
+    wshedfile, 
+    parameters, 
+    fk_day_dict, 
+    start, 
+    duration_seconds, 
+    axis_limit_tuple
+    ):
+    try:
+        tqdm.tqdm._instances.clear()
+    except:
+        pass
+    # data
+    sum_data_1 = load_summerized_data(wshedfile,parameters,
+        fish_key= list(fk_day_dict.keys())[0],
+        day= fk_day_dict[list(fk_day_dict.keys())[0]]['day4']
+    )
+    zValues_1 = sum_data_1['embeddings']
+    positions_1 = sum_data_1['positions']
+    clusters_1 = sum_data_1["clusters"]
+    area_box_1 = sum_data_1['area']
+    time_df_1 = sum_data_1['df_time_index']
+    sum_data_2 = load_summerized_data(wshedfile,parameters,
+        fish_key= list(fk_day_dict.keys())[1],
+        day= fk_day_dict[list(fk_day_dict.keys())[1]]['day4']
+    )
+    zValues_2 = sum_data_2['embeddings']
+    positions_2 = sum_data_2['positions']
+    clusters_2 = sum_data_2["clusters"]
+    area_box_2 = sum_data_2['area']
+    time_df_2 = sum_data_2['df_time_index']
+    sum_data_3 = load_summerized_data(wshedfile,parameters,
+        fish_key= list(fk_day_dict.keys())[2],
+        day= fk_day_dict[list(fk_day_dict.keys())[2]]['day4']
+    )
+    zValues_3 = sum_data_3['embeddings']
+    positions_3 = sum_data_3['positions']
+    clusters_3 = sum_data_3["clusters"]
+    area_box_3 = sum_data_3['area']
+    time_df_3 = sum_data_3['df_time_index']
+    
+    # trajectories
+    fig, (ax1,ax2, ax3) = plt.subplots(3,1 , figsize=(5,15))
+    area_box = np.concatenate((area_box_1, [area_box_1[0]]))
+    ax1.plot(*area_box.T, color="black")
+    ax2.plot(*area_box.T, color="black")
+    ax3.plot(*area_box.T, color="black")
+
+    (line_1,) = ax1.plot([],[], "-o", markersize=3, color="red")
+    (line_2,) = ax2.plot([],[], "-o", markersize=3, color="blue")
+    (line_3,) = ax3.plot([],[], "-o", markersize=3, color="black")
+    tstart = start 
+    offset_df = 100
+    def animate(t):
+        t = int(t*20)+tstart
+        line_1.set_data(*positions_1[t-offset_df:t+offset_df].T)
+        line_2.set_data(*positions_2[t-offset_df:t+offset_df].T)
+        line_3.set_data(*positions_3[t-offset_df:t+offset_df].T)
+        ax1.axis('off')
+        ax2.axis('off')
+        ax3.axis('off')
+        return mplfig_to_npimage(fig) #im, ax
+    anim_trajectories = VideoClip(animate, duration=duration_seconds) 
+
+    # umap
+    fig2, ax4 = plt.subplots(1, 1, figsize=(5,5)) 
+    get_umap_density_figure(
+            umap_embedding= wshedfile['density'],
+            extent_factor= wshedfile['xx'][0][-1],
+            axis_limit_tuple= axis_limit_tuple,
+            overloaded_figure= (fig2,ax4),
+            include_axis_visualization= False,
+            plot_figure= False
+            )
+    get_watershed_boundaries_figure(
+        boundaries_embedding= wshedfile['wbounds'],
+        extent_factor= wshedfile['xx'][0][-1],
+        axis_limit_tuple= axis_limit_tuple,
+        original_figure_width= wshedfile['density'].shape[0],
+        overloaded_figure= (fig2,ax4),
+        include_axis_visualization= False,
+        plot_figure= False
+        )
+    ax4.axis('off')
+    ax4.set_title(' ')
+
+    fig2.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.5)
+    lineZ_1 = ax4.plot([], [], "-", color="red", alpha=0.5, linewidth=2) 
+    sc_1 = ax4.scatter([],[],marker='o', c="r", s=50)
+    lineZ_2 = ax4.plot([], [], "-", color="blue", alpha=0.5, linewidth=2) 
+    sc_2 = ax4.scatter([],[],marker='o', c="b", s=50)
+    lineZ_3 = ax4.plot([], [], "-", color="black", alpha=0.5, linewidth=2) 
+    sc_3 = ax4.scatter([],[],marker='o', c="black", s=50)
+    offset_df = 20
+    cmap = get_color_map(clusters_1.max())
+    def animate_umap(t):
+        t = int(t*20)+tstart
+        lineZ_1[0].set_data(*zValues_1[t-offset_df:t+offset_df].T) 
+        sc_1.set_offsets(zValues_1[t+offset_df])
+        lineZ_2[0].set_data(*zValues_2[t-offset_df:t+offset_df].T) 
+        sc_2.set_offsets(zValues_2[t+offset_df])
+        lineZ_3[0].set_data(*zValues_3[t-offset_df:t+offset_df].T) 
+        sc_3.set_offsets(zValues_3[t+offset_df])
+        return mplfig_to_npimage(fig2) #im, ax
+
+    anim_umap = VideoClip(animate_umap, duration=duration_seconds) 
+    return anim_trajectories, anim_umap
 
 def get_color(ci):
     color = ['lightcoral', 'darkorange', 'olive', 'teal', 'violet', 

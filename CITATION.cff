@@ -1,12 +1,12 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-- family-names: "Stärk"
-  given-names: "Luka"
-  orcid: "https://orcid.org/0000-0002-1390-7432"
 - family-names: "Beese"
   given-names: "Marvin"
   orcid: "https://orcid.org/0009-0008-7417-515X"
+- family-names: "Stärk"
+  given-names: "Luka"
+  orcid: "https://orcid.org/0000-0002-1390-7432"
 - family-names: "Scherer"
   given-names: "Ulrike"
   orcid: "https://orcid.org/0000-0003-1086-8527"
